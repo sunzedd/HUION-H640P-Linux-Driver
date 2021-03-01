@@ -1,0 +1,109 @@
+Вывести информацию о всех устройствах ввода, подключенных к системе можно
+с помощью ВФС proc:
+
+        cat /proc/bus/input/devices
+
+Для подключенного графического планшета huion выводятся следующие записи:
+
+I: Bus=0003 Vendor=256c Product=006d Version=0111
+N: Name="HID 256c:006d Pen"
+P: Phys=usb-0000:00:14.0-9/input0
+S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb1/1-9/1-9:1.0/0003:256C:006D.0003/input/input26
+U: Uniq=
+H: Handlers=mouse4 event20 //!!!!!!!!!!!!!!!!!!!!!!11
+B: PROP=2
+B: EV=1b
+B: KEY=1c01 0 0 0 0 0
+B: ABS=1000003
+B: MSC=10
+
+cat /dev/input/mouse4:
+    Реагирует на перемещение стилуса по планшету (в том числе и над планшетом).
+cat /dev/input/event20:
+    Как и mouse4, но паттерн вывода отличается
+
+
+I: Bus=0003 Vendor=256c Product=006d Version=0111
+N: Name="HID 256c:006d Pad"
+P: Phys=usb-0000:00:14.0-9/input0
+S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb1/1-9/1-9:1.0/0003:256C:006D.0003/input/input27
+U: Uniq=
+H: Handlers=event21 js0 //!!!!!!!!!!!!!!!!!!!
+B: PROP=0
+B: EV=1b
+B: KEY=800 30000000003ff 0 0 0 0
+B: ABS=3
+B: MSC=10
+
+cat /dev/input/event21:
+    Реагирует только на нажатие всех 6 кнопок на планшете.
+cat /dev/input/js0:
+    Реагирует на нажатие 6 кнопок на планшете, но с другим паттерном.
+    Также реагирует на нажатие одной кнопки на стилусе.
+    
+    
+lsusb -v Выводит информацию о всех юсб устройствах.
+Для планшета имеется следующий вывод:
+
+...
+bNumConfigurations:	1
+Configuration Descriptor:
+	...
+	bNumInterfaces:	2 		!!!
+	
+	Interface Descriptor:
+		...
+		bNumEndpoints:		1
+		...
+		bInterfaceNumber: 	0
+		bInterfaceClass: 	1 Human Interface Device
+		bInterfaceProtocol:	2 Mouse
+		iInterface: 		0
+    		
+    		...
+    		    HID Device Descriptor
+    		...
+    		
+    		Endpoint Descriptor:
+    			bLength:		7
+    			bEndpointAddress:	0x81 EP 1 IN
+    			bmAttributes:		3
+    				Transfer Type:		Interrupt
+    				Synch Type:		None
+    				Usage Type:		Data
+    			wMaxPacketSize:	0x0040 1x 64 bytes
+    			bInterval:		2
+    			
+    			
+    	Interface Descriptor:
+    		bNumEndpoints:		1
+    		bInterfaceClass: 	1 Human Interface Device
+		bInterfaceProtocol:	2 Mouse
+		
+    		...
+    		    HID Device Descriptor
+    		...
+    		
+    		Endpoint Descriptor:		
+    			bLength:		7
+    			bEndpointAddress:	0x82 EP 2 IN
+    			bmAttributes:		3
+    				Transfer Type:		Interrupt
+    				Synch Type:		None
+    				Usage Type:		Data
+    			wMaxPacketSize:	0x0010 1x 16 bytes
+    			bInterval:		2
+    			
+!!!
+Напомним, что в обратных вызовах probe и disconnect, которые выполняются
+ядром USB для каждого интерфейса зарегистрированного устройства, в
+качестве первого параметра указывается дескриптор соответствующего интерфейса.
+
+int (*probe)(struct usb_interface *interface, const struct usb_device_id *id);
+void (*disconnect)(struct usb_interface *interface);
+
+
+    
+    
+    
+    
