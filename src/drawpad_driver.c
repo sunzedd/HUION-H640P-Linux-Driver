@@ -26,8 +26,10 @@ static void drawpad_disconnect(struct usb_interface* interface);
 void print_usb_interface_description(const struct usb_interface *interface);
 int get_drawpad_interface_type(const struct usb_interface *interface);
 
-int pen_probe(struct usb_interface *interface, const struct usb_device_id *dev_id);
-int pad_probe(struct usb_interface *interface, const struct usb_device_id *dev_id);
+static int pen_probe(struct usb_interface *interface, const struct usb_device_id *dev_id);
+static void pen_disconnect(struct usb_interface *interface);
+static int pad_probe(struct usb_interface *interface, const struct usb_device_id *dev_id);
+static void pad_disconnect(struct usb_interface *interface);
 /*---------------------------------------------------------------------------*/
 
 
@@ -82,7 +84,12 @@ static
 void drawpad_disconnect(struct usb_interface* interface) {
     LOG_INFO("call drawpad_disconnect");
 
-    // дерегистрация соответствующего USB устройства.
+    int drawpad_interface_type = get_drawpad_interface_type(interface);
+    if (drawpad_interface_type == PEN) {
+        pen_disconnect(interface);
+    } else if (drawpad_interface_type == PAD) {
+        pad_disconnect(interface);
+    }
 }
 
 
@@ -107,6 +114,7 @@ int pen_probe(struct usb_interface *interface,
 
 static
 void pen_disconnect(struct usb_interface *interface) {
+    LOG_INFO("call pen_disconnect\n");
     // usb_deregister_dev(interface, &pen_class_driver);
 }
 
@@ -120,14 +128,16 @@ static struct usb_class_driver *pad_class_driver;
 static
 int pad_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
+
     LOG_INFO("call pad_probe\n");    
     print_usb_interface_description(interface);
+
     return 0;
 }
 
 static
 void pad_disconnect(struct usb_interface *interface) {
-    
+    LOG_INFO("call pad_disconnect\n");
 }
 /*---------------------------------------------------------------------------*/
 
