@@ -15,6 +15,16 @@
 #define PRODUCT_ID    0x006d    // H640P Drawpad
 
 
+typedef 
+struct {
+    struct usb_interface *pen_interface;
+    struct usb_interface *pad_interface;
+    struct usb_device *device;
+} drawpad_t;
+
+static drawpad_t drawpad_object;
+
+
 /*                     Driver Entry Points Headers                   */
 static int drawpad_probe(struct usb_interface *interface, 
                          const struct usb_device_id *dev_id);
@@ -46,13 +56,18 @@ int drawpad_probe(struct usb_interface *interface,
     
     int rc = 0;
 
+    if (drawpad_object.device == NULL) {
+        drawpad_object.device = interface_to_usbdev(interface);
+    }
+
     switch (get_drawpad_interface_type(interface)) {
         case PEN:
-            LOG_INFO("\tDrawpad Interface Type: PEN\n");
+            drawpad_object.pen_interface = interface;
             rc = pen_probe(interface, dev_id);
             break;
+
         case PAD:
-            LOG_INFO("\tDrawpad Interface Type: PAD\n");
+            drawpad_object.pad_interface = interface;
             rc = pad_probe(interface, dev_id);
             break;
     }
