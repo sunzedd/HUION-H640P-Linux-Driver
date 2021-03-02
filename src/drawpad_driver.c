@@ -25,6 +25,9 @@ static void drawpad_disconnect(struct usb_interface* interface);
 /*                         2 Level functions                                 */
 void print_usb_interface_description(const struct usb_interface *interface);
 int get_drawpad_interface_type(const struct usb_interface *interface);
+
+int pen_probe(struct usb_interface *interface, const struct usb_device_id *dev_id);
+int pad_probe(struct usb_interface *interface, const struct usb_device_id *dev_id);
 /*---------------------------------------------------------------------------*/
 
 
@@ -67,22 +70,22 @@ int drawpad_probe(struct usb_interface *interface,
 
     LOG_INFO("probe device (%04x:%04X)", dev_id->idVendor, dev_id->idProduct);
     
+    int rc = 0;
+
     // определить, какой именно интерфейс вызвал функцию probe? (планшет или стилус)
     int drawpad_interface_type = get_drawpad_interface_type(interface);
     switch (drawpad_interface_type) {
     case PEN:
-        // pen_probe();
-        LOG_INFO("Drawpad Interface Type: PEN\n");
+        LOG_INFO("\tDrawpad Interface Type: PEN\n");
+        rc = pen_probe(interface, dev_id);
         break;
     case PAD:
-        // pad_probe();
-        LOG_INFO("Drawpad Interface Type: PAD\n");
+        LOG_INFO("\tDrawpad Interface Type: PAD\n");
+        rc = pad_probe(interface, dev_id);
         break;
     }
-
-    print_usb_interface_description(interface);
     
-    return 0;
+    return rc;
 }
 
 static 
@@ -91,6 +94,27 @@ void drawpad_disconnect(struct usb_interface* interface) {
 
     // дерегистрация соответствующего USB устройства.
 }
+
+
+/*                             Pen functions                                 */
+int pen_probe(struct usb_interface *interface,
+              const struct usb_device_id *dev_id) {
+    LOG_INFO("call pen_probe\n");
+    print_usb_interface_description(interface);
+    return 0;
+}
+/*---------------------------------------------------------------------------*/
+
+/*                             Pad functions                                 */
+int pad_probe(struct usb_interface *interface,
+              const struct usb_device_id *dev_id) {
+    LOG_INFO("call pad_probe\n");    
+    print_usb_interface_description(interface);
+    return 0;
+}
+/*---------------------------------------------------------------------------*/
+
+
 
 static 
 int __init drawpad_init(void) {
@@ -140,7 +164,7 @@ int get_drawpad_interface_type(const struct usb_interface *interface) {
     struct usb_host_interface *interface_desc = interface->cur_altsetting;
     
     int drawpad_interface_type = -1;
-    
+
     switch (interface_desc->desc.bInterfaceNumber) {
         case 0: drawpad_interface_type = PEN; break;
         case 1: drawpad_interface_type = PAD; break;
