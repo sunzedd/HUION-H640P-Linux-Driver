@@ -1,3 +1,6 @@
+#ifndef __HUION_DRAWPAD_LOG_UTILS__
+#define __HUION_DRAWPAD_LOG_UTILS__
+
 #include <linux/kernel.h>
 
 #define LOG(x, ...) \
@@ -8,3 +11,5 @@
 
 #define LOG_ERR(x, ...) \
     printk(KERN_ERR LOG(x, __VA_ARGS__))
+
+#endif // __HUION_DRAWPAD_LOG_UTILS__
