@@ -1,11 +1,11 @@
 #ifndef HUION_H640P_DRAWPAD_DRIVER
 #define HUION_H640P_DRAWPAD_DRIVER
 
-#include "log_utils.h"
-
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/usb.h>
+
+#include "log_utils.h"
 
 
 #define DRIVER_NAME     "Huion H640P Driver"
@@ -20,6 +20,12 @@ static int drawpad_probe(struct usb_interface *interface,
                          const struct usb_device_id *dev_id);
 static void drawpad_disconnect(struct usb_interface* interface);
 /* ----------------------------------------------------------------- */
+
+
+/*                         2 Level functions                                 */
+void print_usb_interface_description(const struct usb_interface *interface);
+/*---------------------------------------------------------------------------*/
+
 
 static 
 struct usb_device_id devices_table[] = {
@@ -52,26 +58,9 @@ static
 int drawpad_probe(struct usb_interface *interface, 
                   const struct usb_device_id *dev_id) {
 
-    LOG_INFO("call drawpad_probe");
-
-    // Получаем 'дескриптор' интерфейса
-    struct usb_host_interface *interface_desc = interface->cur_altsetting;
+    LOG_INFO("probe device (%04x:%04X)", dev_id->idVendor, dev_id->idProduct);
+    print_usb_interface_description(interface);
     
-    LOG_INFO("probe device (%04x:%04X). Interface number %d\n",
-              dev_id->idVendor, dev_id->idProduct,
-              interface_desc->desc.bInterfaceNumber);
-    
-    LOG_INFO("\tEndpoints count: %d\n", interface_desc->desc.bNumEndpoints);
-
-    for (int i = 0; i < interface_desc->desc.bNumEndpoints; i++) {
-        struct usb_endpoint_descriptor *endpoint_desc = 
-            &(interface_desc->endpoint[i].desc);
-
-        LOG_INFO("\t\tEndpoint № %d -> bEndPointAddress: 0x%02X\n",
-                  i, endpoint_desc->bEndpointAddress);
-        LOG_INFO("\n");
-    }
-
     return 0;
 }
 
@@ -104,5 +93,25 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 
 module_init(drawpad_init);
 module_exit(drawpad_exit);
+
+
+// 2 level functions
+void print_usb_interface_description(const struct usb_interface *interface) {
+
+    struct usb_host_interface *interface_desc = interface->cur_altsetting;
+
+    LOG_INFO("\tInterface number: %d\n", interface_desc->desc.bInterfaceNumber);
+    LOG_INFO("\tEndpoints count: %d\n", interface_desc->desc.bNumEndpoints);
+
+    for (int i = 0; i < interface_desc->desc.bNumEndpoints; i++) {
+
+        struct usb_endpoint_descriptor *endpoint_desc = 
+            &(interface_desc->endpoint[i].desc);
+
+        LOG_INFO("\t\tEndpointDescriptor[%d] -> bEndPointAddress: 0x%02X\n\n",
+                  i, endpoint_desc->bEndpointAddress);
+    }
+}
+
 
 #endif // HUION_H640P_DRAWPAD_DRIVER
