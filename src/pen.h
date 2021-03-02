@@ -4,7 +4,8 @@
 #include <linux/init.h>
 #include "fetch_dev_info.h"
 
-#define PEN_ENDPOINT_ADDRESS 0x81
+#define PEN_ENDPOINT_ADDRESS    0x81    // IN, TransferType = Interrupt, bInterval = 2 ms (Интервал между прерываниями от устройства)
+#define MAX_PACKET_SIZE         0x0040  // 64 bytes
 
 static struct usb_class_driver pen_class_driver;
 
