@@ -72,6 +72,8 @@ int drawpad_probe(struct usb_interface *interface,
             break;
     }
     
+    LOG_INFO("\n");
+
     return rc;
 }
 
