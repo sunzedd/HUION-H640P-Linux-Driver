@@ -12,7 +12,7 @@ void print_usb_interface_description(const struct usb_interface *interface) {
         struct usb_endpoint_descriptor *endpoint_desc = 
             &(interface_desc->endpoint[i].desc);
 
-        LOG_INFO("\t\tEndpointDescriptor[%d] -> bEndPointAddress: 0x%02X\n\n",
+        LOG_INFO("\t\tEndpointDescriptor[%d] -> bEndPointAddress: 0x%02X\n",
                   i, endpoint_desc->bEndpointAddress);
     }
 }
