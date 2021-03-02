@@ -15,14 +15,14 @@ static int pen_close(struct inode *i, struct file *f) { return 0; }
 static
 ssize_t pen_read(struct file *f, char __user *buf, size_t cnt, loff_t *off) {
     // Just log for now
-    LOG_INFO("call pen_read\n");
+    LOG_INFO("\tcall pen_read\n");
     return 1;
 }
 
 static 
 ssize_t pen_write(struct file *f, const char __user *buf, size_t cnt, loff_t *off) {
     // Just log for now
-    LOG_INFO("call pen_write\n");
+    LOG_INFO("\tcall pen_write\n");
     return 1;
 }
 
@@ -38,7 +38,7 @@ static
 int pen_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
 
-    LOG_INFO("call pen_probe\n");
+    LOG_INFO("\tcall pen_probe\n");
     print_usb_interface_description(interface);
 
     pen_class_driver.name = "usb/huion_pen";
@@ -46,9 +46,9 @@ int pen_probe(struct usb_interface *interface,
 
     int rc = usb_register_dev(interface, &pen_class_driver);    // Этот вызов создает файл устройства (интерфеса) в dev
     if (rc < 0) {
-        LOG_ERR("usb_register_dev FAILURE\n");
+        LOG_ERR("\tusb_register_dev FAILURE\n");
     } else { 
-        LOG_INFO("Registered Pen with a MINOR: %d\n", interface->minor);
+        LOG_INFO("\tregistered Pen with a MINOR: %d\n", interface->minor);
     }
 
     return rc;
@@ -57,7 +57,7 @@ int pen_probe(struct usb_interface *interface,
 static
 void pen_disconnect(struct usb_interface *interface) {
 
-    LOG_INFO("call pen_disconnect\n");
+    LOG_INFO("\tcall pen_disconnect\n");
     usb_deregister_dev(interface, &pen_class_driver);
 }
 

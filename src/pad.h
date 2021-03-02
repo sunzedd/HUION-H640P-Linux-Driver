@@ -15,14 +15,14 @@ static int pad_close(struct inode *i, struct file *f) { return 0; }
 static
 ssize_t pad_read(struct file *f, char __user *buf, size_t cnt, loff_t *off) {
     // Just log for now
-    LOG_INFO("call pad_read\n");
+    LOG_INFO("\tcall pad_read\n");
     return 1;
 }
 
 static 
 ssize_t pad_write(struct file *f, const char __user *buf, size_t cnt, loff_t *off) {
     // Just log for now
-    LOG_INFO("call pad_write\n");
+    LOG_INFO("\tcall pad_write\n");
     return 1;
 }
 
@@ -37,7 +37,7 @@ static
 int pad_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
 
-    LOG_INFO("call pad_probe\n");    
+    LOG_INFO("\tcall pad_probe\n");    
     print_usb_interface_description(interface);
 
     pad_class_driver.name = "usb/huion_pad";
@@ -45,9 +45,9 @@ int pad_probe(struct usb_interface *interface,
 
     int rc = usb_register_dev(interface, &pad_class_driver);    // Этот вызов создает файл устройства (интерфеса) в dev
     if (rc < 0) {
-        LOG_ERR("usb_register_dev FAILURE\n");
+        LOG_ERR("\tusb_register_dev FAILURE\n");
     } else { 
-        LOG_INFO("Registered Pad with a MINOR: %d\n", interface->minor);
+        LOG_INFO("\tregistered Pad with a MINOR: %d\n", interface->minor);
     }
 
     return rc;
@@ -56,7 +56,7 @@ int pad_probe(struct usb_interface *interface,
 static
 void pad_disconnect(struct usb_interface *interface) {
 
-    LOG_INFO("call pad_disconnect\n");
+    LOG_INFO("\tcall pad_disconnect\n");
     usb_deregister_dev(interface, &pad_class_driver);
 }
 
