@@ -53,16 +53,6 @@ struct usb_driver drawpad_driver = {
     .disconnect = drawpad_disconnect,           // disconnect - entry point 2
 };
 
-typedef
-struct drawpad {
-    char name[128];
-    char phys[64];
-    struct usb_device   *usb_dev;
-    struct input_dev    *input_dev;
-    struct urb          *irq;
-    char *dma;
-    dma_addr_t data_dma;
-} drawpad_t;
 
 static 
 int drawpad_probe(struct usb_interface *interface, 
