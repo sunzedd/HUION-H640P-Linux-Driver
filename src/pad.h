@@ -5,7 +5,7 @@
 #include "fetch_dev_info.h"
 
 #define PAD_ENDPOINT_ADDRESS    0x82    // IN, TransferType = Interrupt, bInterval = 2 ms (Интервал между прерываниями от устройства)
-#define MAX_PACKET_SIZE         0x0010  // 16 bytes
+#define PAD_USB_PACKET_SIZE     0x0010  // 16 bytes
 
 
 static struct usb_class_driver pad_class_driver;
