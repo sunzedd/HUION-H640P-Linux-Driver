@@ -3,80 +3,77 @@
 
 #include <linux/init.h>
 #include <linux/slab.h>
+#include <linux/usb/input.h>
+
 #include "fetch_dev_info.h"
 
 #define PEN_ENDPOINT_ADDRESS    0x81    // IN, TransferType = Interrupt, bInterval = 2 ms (Интервал между прерываниями от устройства)
 #define INTERRUPT_INTERVAL_MS   2
 #define PEN_USB_PACKET_SIZE     0x0040  // 64 bytes
 
-typedef
-struct pen { 
+typedef struct pen {
+    char    phys[32];
+
     struct usb_device   *usb_device;
-    unsigned char       *transfer_buffer;   // буфер для чтения данных из устройства.  
-    unsigned int        buffer_size;
-    struct urb          *urb;
+    struct input_dev    *input_device;
+
+    struct urb      *urb;
+    unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.  
+    unsigned int    buffer_size;
 } pen_t;
 
 
-static struct usb_class_driver pen_class_driver;
 static pen_t pen_object;
 
-
-static int pen_open(struct inode *i, struct file *f) {
-    LOG_INFO("\tcall pen_open\n");
-    return 0; 
-}
-
-static int pen_close(struct inode *i, struct file *f) {
-    LOG_INFO("\tcall pen_close\n");
-    return 0;
-}
-
-static
-ssize_t pen_read(struct file *f, char __user *buf, size_t cnt, loff_t *off) {
-    // Just log for now
-    LOG_INFO("\tcall pen_read\n");
-    LOG_INFO("\t\ttransfer_buffer: %s\n", pen_object.transfer_buffer);
-    return 1;
-}
-
-static 
-ssize_t pen_write(struct file *f, const char __user *buf, size_t cnt, loff_t *off) {
-    // Just log for now
-    LOG_INFO("\tcall pen_write\n");
-    return 1;
-}
-
-static struct file_operations pen_fops = {
-    .open = pen_open,
-    .release = pen_close,
-    .read = pen_read,
-    .write = pen_write
-};
 
 static
 void pen_irq(struct urb *urb) {
     LOG_INFO("\tpen_irq callback called\n");
 }
 
+static
+int pen_open(struct input_dev* input_device) {
+    LOG_INFO("\tcall pen_open()\n");
+    return 1;
+}
+
+static
+void pen_close(struct input_dev* input_device) {
+    LOG_INFO("\tcall pen_close()\n");
+}
 
 static
 int pen_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
 
     LOG_INFO("\tcall pen_probe\n");
-    print_usb_interface_description(interface);
+    
+    int rc = 0;
 
     pen_object.usb_device = interface_to_usbdev(interface);
+    pen_object.input_device = input_allocate_device();
+    if (pen_object.input_device == NULL) {
+        LOG_ERR("\tinput_allocate_device() FAILURE\n");
+        return -1;
+    }
 
-    pen_class_driver.name = "usb/huion_pen";
-    pen_class_driver.fops = &pen_fops;
+    usb_make_path(pen_object.usb_device,
+                  pen_object.phys, sizeof(pen_object.phys));
+    strlcat(pen_object.phys, "/input0", sizeof(pen_object.phys));
 
-    int rc = usb_register_dev(interface, &pen_class_driver);    // Этот вызов создает файл устройства (интерфеса) в dev
-    if (rc < 0) {
-        LOG_ERR("\tusb_register_dev FAILURE\n");
-    } else { 
-        LOG_INFO("\tregistered Pen with a MINOR: %d\n", interface->minor);
+    pen_object.input_device->name = "Huion H640P Pen";
+    pen_object.input_device->phys = pen_object.phys;
+    usb_to_input_id(pen_object.usb_device, &pen_object.input_device->id);
+    pen_object.input_device->dev.parent = &interface->dev;
+    LOG_INFO("\tpen usb device path: %s", pen_object.input_device->phys);
+
+    pen_object.input_device->open = pen_open;
+    pen_object.input_device->close = pen_close;
+
+    rc = input_register_device(pen_object.input_device);
+    if (rc != 0) {
+        LOG_ERR("\tinput_register_revice() FAILURE\n");
+        return -1;
     }
 
     if (rc == 0) { 
@@ -125,9 +122,9 @@ void pen_disconnect(struct usb_interface *interface) {
 
     LOG_INFO("\tcall pen_disconnect\n");
 
+    input_unregister_device(pen_object.input_device);
+    input_free_device(pen_object.input_device);
     usb_kill_urb(pen_object.urb);
-    usb_free_urb(pen_object.urb);
-    usb_deregister_dev(interface, &pen_class_driver);
 }
 
 #endif // __HUION_DRAWPAD_PEN__
