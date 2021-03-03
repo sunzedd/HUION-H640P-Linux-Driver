@@ -136,7 +136,30 @@ void (*disconnect)(struct usb_interface *interface);
 $ ls -l /dev/ | grep "^c"
 c - character.
 
+	struct usb_device представляет физическое USB устройство,
+	struct usb_interface представляет конкретный интерфейс этого устройства.
+	Эти структуры представляются в sysfs как отдельные устройства, так как они 
+содержат struct device.
+
+---------------------------- URB ----------------------------------------------
+struct urb: inlude/linux/usb.h
+
+urb используется для отправки и получения данных в/с конкретного endpoint конкретного
+устройства в ассинхронной манере.
+	Драйвер usb устройства может аллоцировать несколько urb для одного endpoint-а,
+либо один urb на несколько endpoint-ов. Каждый endpoint может обрабатывать очередь
+из urb. Urb могут быть отменены драйвером, в случае если устройство было отключено.
+
+	usb_fill_int_urb is a helper function to properly initialize a urb to be
+sent to a interrupt endpoint of a USB device:
+	
+	void usb_fill_int_urb(struct urb *urb, struct usb_device *dev,
+						  unsigned int pipe, void *transfer_buffer,
+						  int buffer_length, usb_complete_t complete,
+						  void *context, int interval);
+
+    int interval - The interval at which that this urb should be scheduled.
+В нашем случае - 2 милисекунды.
 
 
-    
     
