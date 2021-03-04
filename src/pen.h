@@ -7,8 +7,6 @@
 
 #include "fetch_dev_info.h"
 
-#define PEN_ENDPOINT_ADDRESS    0x81    // IN, TransferType = Interrupt, bInterval = 2 ms (Интервал между прерываниями от устройства)
-#define INTERRUPT_INTERVAL_MS   2
 #define PEN_USB_PACKET_SIZE     0x0040  // 64 bytes
 
 typedef struct pen {
@@ -19,7 +17,7 @@ typedef struct pen {
 
     struct urb      *urb;
     unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.  
-    unsigned int    buffer_size;
+    unsigned int    transfer_buffer_size;
 } pen_t;
 
 
@@ -80,8 +78,8 @@ int pen_probe(struct usb_interface *interface,
         struct usb_host_interface *intf_desc = interface->cur_altsetting;
         struct usb_endpoint_descriptor *endpoint_desc = &(intf_desc->endpoint[0].desc); // В устройстве по одному endpoint-у на каждый интерфейс.
         
-        pen_object.buffer_size = endpoint_desc->wMaxPacketSize;
-        pen_object.transfer_buffer = kzalloc(pen_object.buffer_size, GFP_KERNEL);
+        pen_object.transfer_buffer_size = endpoint_desc->wMaxPacketSize;
+        pen_object.transfer_buffer = kzalloc(pen_object.transfer_buffer_size, GFP_KERNEL);
         if (pen_object.transfer_buffer == NULL) {
             LOG_ERR("\tpen_object.transfer_buffer allocation FAILURE\n");
             return -1;
@@ -95,14 +93,14 @@ int pen_probe(struct usb_interface *interface,
 
         usb_fill_int_urb(pen_object.urb, pen_object.usb_device,
                          usb_rcvintpipe(pen_object.usb_device, endpoint_desc->bEndpointAddress),
-                         pen_object.transfer_buffer, pen_object.buffer_size,
+                         pen_object.transfer_buffer, pen_object.transfer_buffer_size,
                          pen_irq, &pen_object,
                          endpoint_desc->bInterval);
 
         LOG_INFO("\tusb_fill_int_urb settings:\n");
         LOG_INFO("\t\tbEndpointAddress %x, wMaxPacketSize %d, bInterval %d",
                       endpoint_desc->bEndpointAddress,
-                      pen_object.buffer_size,
+                      pen_object.transfer_buffer_size,
                       endpoint_desc->bInterval);
 
         rc = usb_submit_urb(pen_object.urb, GFP_ATOMIC);
