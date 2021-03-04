@@ -32,7 +32,8 @@ void pen_irq(struct urb *urb) {
 static
 int pen_open(struct input_dev* input_device) {
     LOG_INFO("\tcall pen_open()\n");
-    return 1;
+    
+    return 0;
 }
 
 static
@@ -121,7 +122,6 @@ void pen_disconnect(struct usb_interface *interface) {
     LOG_INFO("\tcall pen_disconnect\n");
 
     input_unregister_device(pen_object.input_device);
-    input_free_device(pen_object.input_device);
     usb_kill_urb(pen_object.urb);
 }
 
