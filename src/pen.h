@@ -16,7 +16,7 @@ struct pen {
 
     struct urb      *urb;
 
-    unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.  
+    unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.
     unsigned int    transfer_buffer_size;
     dma_addr_t      dma;
 };
@@ -24,26 +24,57 @@ struct pen {
 
 static
 void pen_irq(struct urb *urb) {
-    LOG_INFO("\tpen_irq callback called\n");
+    int rc = 0;
+
+    struct pen *pen = urb->context;
+
+    if (urb->status == 0) {
+        LOG_INFO_PEN("\tPEN transfer_buffer: %s\n", pen->transfer_buffer);
+
+        input_sync(pen->input_device);
+
+        rc = usb_submit_urb(pen->urb, GFP_ATOMIC);
+        if (rc) {
+            LOG_ERR_PEN("\tusb_submit_urb failed\n");
+        }
+
+    } else {
+        LOG_ERR_PEN("\tError urb status recieved: ");
+        switch (urb->status) {
+            case -ENOENT: LOG_ERR_PEN("\t\tENOENT (killed by usb_kill_urb)\n"); break;
+            case -ECONNRESET: LOG_ERR_PEN("\t\tECONNRESET\n"); break;
+            case -EINPROGRESS: LOG_ERR_PEN("\t\tEINPROGRESS\n"); break;
+            default: LOG_ERR_PEN("\t\tanother error: %d\n", urb->status); break;
+        }
+    }
 }
 
 static
 int pen_open(struct input_dev* input_device) {
-    LOG_INFO("\tcall pen_open()\n");
+    LOG_INFO_PEN("pen opened\n");
     
+    struct pen *pen = input_get_drvdata(input_device);
+
+    if (usb_submit_urb(pen->urb, GFP_KERNEL)) {
+        return -EIO;
+    }
+
     return 0;
 }
 
 static
 void pen_close(struct input_dev* input_device) {
-    LOG_INFO("\tcall pen_close()\n");
+    LOG_INFO_PEN("pen_close()\n");
+
+    struct pen *pen = input_get_drvdata(input_device);
+    usb_kill_urb(pen->urb);
 }
 
 static
 int pen_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
 
-    LOG_INFO("\tcall pen_probe\n");
+    LOG_INFO_PEN("\tcall pen_probe\n");
     
     int rc = -ENOMEM;
 
@@ -52,14 +83,14 @@ int pen_probe(struct usb_interface *interface,
 
     struct pen *pen = kzalloc(sizeof(struct pen), GFP_KERNEL);
     if (!pen) {
-        LOG_ERR("\tstruct pen allocation FAILURE\n");
+        LOG_ERR_PEN("\tstruct pen allocation FAILURE\n");
         return rc;
     }
 
     pen->usb_device = interface_to_usbdev(interface);
     pen->input_device = input_allocate_device();
     if (!pen->input_device) {
-        LOG_ERR("\tinput_allocate_device FAILURE\n");
+        LOG_ERR_PEN("\tinput_allocate_device FAILURE\n");
         kfree(pen);
         return rc;
     }
@@ -69,18 +100,8 @@ int pen_probe(struct usb_interface *interface,
                                               pen->transfer_buffer_size,
                                               GFP_KERNEL, &pen->dma);
     if (!pen->transfer_buffer) {
-        LOG_ERR("\ttransfer buffer allocation FAILURE\n");
+        LOG_ERR_PEN("\ttransfer buffer allocation FAILURE\n");
         input_free_device(pen->input_device);
-        kfree(pen);
-        return rc;
-    }
-
-    pen->urb = usb_alloc_urb(0, GFP_KERNEL);
-    if (!pen->urb) {
-        LOG_ERR("\tusb_alloc_urb FAILURE\n");
-        input_free_device(pen->input_device);
-        usb_free_coherent(pen->usb_device, pen->transfer_buffer_size,
-                          pen->transfer_buffer, pen->dma);
         kfree(pen);
         return rc;
     }
@@ -98,7 +119,24 @@ int pen_probe(struct usb_interface *interface,
     pen->input_device->open = pen_open;
     pen->input_device->close = pen_close;
 
+    pen->urb = usb_alloc_urb(0, GFP_KERNEL);
+    if (!pen->urb) {
+        LOG_ERR_PEN("\tusb_alloc_urb FAILURE\n");
+        input_free_device(pen->input_device);
+        usb_free_coherent(pen->usb_device, pen->transfer_buffer_size,
+                          pen->transfer_buffer, pen->dma);
+        kfree(pen);
+        return rc;
+    }
+
+    // Флаг, указывающий требование использовать DMA буфер вместо transfer_buffer
+    pen->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+    
     int urb_pipe = usb_rcvintpipe(pen->usb_device, endpoint->bEndpointAddress);
+
+    LOG_INFO_PEN("\tendpoint->bEndpointAddress = %x\n", endpoint->bEndpointAddress);
+    LOG_INFO_PEN("\turb rcvintpipe = %d\n", urb_pipe);
+
     usb_fill_int_urb(pen->urb, pen->usb_device, urb_pipe,
                      pen->transfer_buffer, pen->transfer_buffer_size,
                      pen_irq, pen,
@@ -109,17 +147,12 @@ int pen_probe(struct usb_interface *interface,
     if (rc == 0) {
         usb_set_intfdata(interface, pen);
     } else {
-        LOG_ERR("\tinput_register_device FAILURE\n");
+        LOG_ERR_PEN("\tinput_register_device FAILURE\n");
         usb_free_urb(pen->urb);
         input_free_device(pen->input_device);
         usb_free_coherent(pen->usb_device, pen->transfer_buffer_size,
                           pen->transfer_buffer, pen->dma);
         kfree(pen);
-    }
-
-    if (rc == 0) {
-        LOG_INFO("\tRegistered Pen input device\n");
-        LOG_INFO("\tPen phys: %s\n", pen->phys);
     }
 
     return rc;
@@ -128,7 +161,7 @@ int pen_probe(struct usb_interface *interface,
 static
 void pen_disconnect(struct usb_interface *interface) {
     
-    LOG_INFO("\tcall pen_disconnect\n");
+    LOG_INFO_PEN("\tcall pen_disconnect\n");
 
     struct pen *pen = usb_get_intfdata(interface);
     if (pen) {

@@ -2,54 +2,160 @@
 #define __HUION_DRAWPAD_PAD__
 
 #include <linux/init.h>
+#include <linux/slab.h>
+#include <linux/usb/input.h>
+
 #include "fetch_dev_info.h"
 
-#define PAD_ENDPOINT_ADDRESS    0x82    // IN, TransferType = Interrupt, bInterval = 2 ms (Интервал между прерываниями от устройства)
-#define PAD_USB_PACKET_SIZE     0x0010  // 16 bytes
 
+struct pad {
+    char    phys[32];
 
-static struct usb_class_driver pad_class_driver;
+    struct usb_device   *usb_device;
+    struct input_dev    *input_device;
 
+    struct urb      *urb;
 
-static int pad_open(struct inode *i, struct file *f) { return 0; }
-static int pad_close(struct inode *i, struct file *f) { return 0; }
+    unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.
+    unsigned int    transfer_buffer_size;
+    dma_addr_t      dma;
+};
+
 
 static
-ssize_t pad_read(struct file *f, char __user *buf, size_t cnt, loff_t *off) {
-    // Just log for now
-    LOG_INFO("\tcall pad_read\n");
-    return 1;
+void pad_irq(struct urb *urb) {
+    int rc = 0;
+
+    struct pad *pad = urb->context;
+
+    if (urb->status == 0) {
+        LOG_INFO_PAD("\tPAD transfer_buffer: %s\n", pad->transfer_buffer);
+
+        input_sync(pad->input_device);
+
+        rc = usb_submit_urb(pad->urb, GFP_ATOMIC);
+        if (rc) {
+            LOG_ERR_PAD("\tusb_submit_urb failed\n");
+        }
+
+    } else {
+        LOG_ERR_PAD("\tError urb status recieved: ");
+        switch (urb->status) {
+            case -ENOENT: LOG_ERR_PAD("\t\tENOENT (killed by usb_kill_urb)\n"); break;
+            case -ECONNRESET: LOG_ERR_PAD("\t\tECONNRESET\n"); break;
+            case -EINPROGRESS: LOG_ERR_PAD("\t\tEINPROGRESS\n"); break;
+            default: LOG_ERR_PAD("\t\tanother error: %d\n", urb->status); break;
+        }
+    }
 }
 
-static 
-ssize_t pad_write(struct file *f, const char __user *buf, size_t cnt, loff_t *off) {
-    // Just log for now
-    LOG_INFO("\tcall pad_write\n");
-    return 1;
+static
+int pad_open(struct input_dev* input_device) {
+    LOG_INFO_PAD("pad opened\n");
+    
+    struct pad *pad = input_get_drvdata(input_device);
+
+    if (usb_submit_urb(pad->urb, GFP_KERNEL)) {
+        return -EIO;
+    }
+
+    return 0;
 }
 
-static struct file_operations pad_fops = {
-    .open = pad_open,
-    .release = pad_close,
-    .read = pad_read,
-    .write = pad_write
-};
+static
+void pad_close(struct input_dev* input_device) {
+    LOG_INFO_PAD("pad closed\n");
+
+    struct pad *pad = input_get_drvdata(input_device);
+    usb_kill_urb(pad->urb);
+}
 
 static
 int pad_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
 
-    LOG_INFO("\tcall pad_probe\n");    
-    print_usb_interface_description(interface);
+    LOG_INFO_PAD("\tcall pad_probe\n");
+    
+    int rc = -ENOMEM;
 
-    pad_class_driver.name = "usb/huion_pad";
-    pad_class_driver.fops = &pad_fops;
+    struct usb_endpoint_descriptor *endpoint = 
+        &interface->cur_altsetting->endpoint[0].desc;
 
-    int rc = usb_register_dev(interface, &pad_class_driver);    // Этот вызов создает файл устройства (интерфеса) в dev
-    if (rc < 0) {
-        LOG_ERR("\tusb_register_dev FAILURE\n");
-    } else { 
-        LOG_INFO("\tregistered Pad with a MINOR: %d\n", interface->minor);
+    struct pad *pad = kzalloc(sizeof(struct pad), GFP_KERNEL);
+    if (!pad) {
+        LOG_ERR_PAD("\tstruct pad allocation FAILURE\n");
+        return rc;
+    }
+
+    pad->usb_device = interface_to_usbdev(interface);
+    pad->input_device = input_allocate_device();
+    if (!pad->input_device) {
+        LOG_ERR_PAD("\tinput_allocate_device FAILURE\n");
+        kfree(pad);
+        return rc;
+    }
+
+    pad->transfer_buffer_size = endpoint->wMaxPacketSize;
+    pad->transfer_buffer = usb_alloc_coherent(pad->usb_device,
+                                              pad->transfer_buffer_size,
+                                              GFP_KERNEL, &pad->dma);
+    if (!pad->transfer_buffer) {
+        LOG_ERR_PAD("\ttransfer buffer allocation FAILURE\n");
+        input_free_device(pad->input_device);
+        kfree(pad);
+        return rc;
+    }
+
+    LOG_INFO_PAD("\tendpoint->wMaxPacketSize %d\n", endpoint->wMaxPacketSize);
+
+    usb_make_path(pad->usb_device, pad->phys, sizeof(pad->phys));
+    strlcat(pad->phys, "/input0", sizeof(pad->phys));
+
+    pad->input_device->name = "Huion H640P Pad";
+    pad->input_device->phys = pad->phys;
+    usb_to_input_id(pad->usb_device, &pad->input_device->id);
+    pad->input_device->dev.parent = &interface->dev;
+
+    input_set_drvdata(pad->input_device, pad);
+
+    pad->input_device->open = pad_open;
+    pad->input_device->close = pad_close;
+
+    pad->urb = usb_alloc_urb(0, GFP_KERNEL);
+    if (!pad->urb) {
+        LOG_ERR_PAD("\tusb_alloc_urb FAILURE\n");
+        input_free_device(pad->input_device);
+        usb_free_coherent(pad->usb_device, pad->transfer_buffer_size,
+                          pad->transfer_buffer, pad->dma);
+        kfree(pad);
+        return rc;
+    }
+
+    // Флаг, указывающий требование использовать DMA буфер вместо transfer_buffer
+    pad->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+    
+    int urb_pipe = usb_rcvintpipe(pad->usb_device, endpoint->bEndpointAddress);
+
+    LOG_INFO_PAD("\tendpoint->bEndpointAddress = %x\n", endpoint->bEndpointAddress);
+    LOG_INFO_PAD("\turb rcvintpipe = %d\n", urb_pipe);
+
+
+    usb_fill_int_urb(pad->urb, pad->usb_device, urb_pipe,
+                     pad->transfer_buffer, pad->transfer_buffer_size,
+                     pad_irq, pad,
+                     endpoint->bInterval);
+    pad->urb->transfer_dma = pad->dma;
+    
+    rc = input_register_device(pad->input_device);
+    if (rc == 0) {
+        usb_set_intfdata(interface, pad);
+    } else {
+        LOG_ERR_PAD("\tinput_register_device FAILURE\n");
+        usb_free_urb(pad->urb);
+        input_free_device(pad->input_device);
+        usb_free_coherent(pad->usb_device, pad->transfer_buffer_size,
+                          pad->transfer_buffer, pad->dma);
+        kfree(pad);
     }
 
     return rc;
@@ -57,9 +163,18 @@ int pad_probe(struct usb_interface *interface,
 
 static
 void pad_disconnect(struct usb_interface *interface) {
+    
+    LOG_INFO_PAD("\tcall pad_disconnect\n");
 
-    LOG_INFO("\tcall pad_disconnect\n");
-    usb_deregister_dev(interface, &pad_class_driver);
+    struct pad *pad = usb_get_intfdata(interface);
+    if (pad) {
+        usb_kill_urb(pad->urb);
+        usb_free_urb(pad->urb);
+        input_unregister_device(pad->input_device);
+        usb_free_coherent(pad->usb_device, pad->transfer_buffer_size,
+                          pad->transfer_buffer, pad->dma);
+        kfree(pad);
+    }
 }
 
 #endif // __HUION_DRAWPAD_PAD__
