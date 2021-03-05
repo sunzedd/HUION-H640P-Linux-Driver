@@ -1,5 +1,5 @@
 CONFIG_MODULE_SIG=n
-ccflags-y := -std=gnu99 -Wno-declaration-after-statement
+ccflags-y := -std=gnu99 -Wno-declaration-after-statement -ffreestanding
 
 obj-m = huion_drawpad.o
 huion_drawpad-objs := ./src/fetch_dev_info.o ./src/huion_drawpad.o
