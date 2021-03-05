@@ -5,6 +5,8 @@
 #include <linux/slab.h>
 #include <linux/usb/input.h>
 
+//#include <stdint.h>
+
 #include "fetch_dev_info.h"
 
 
@@ -23,16 +25,21 @@ struct pad {
 
 static
 void pad_parse_transfer_buffer(struct pad *pad) {
+    uint8_t first_byte;
+    uint8_t pen_status;
+    uint16_t x; 
+    uint16_t y; 
+    uint16_t force; 
 
-    //LOG_INFO_PAD("\tPAD transfer_buffer: %s\n", pad->transfer_buffer);
+    first_byte = pad->transfer_buffer[0];
+    pen_status = pad->transfer_buffer[1];
+    memcpy(&x, &pad->transfer_buffer[2], 2);
+    memcpy(&y, &pad->transfer_buffer[4], 2);
+    memcpy(&force, &pad->transfer_buffer[6], 2);
 
-    unsigned char buf[64];
-    for (int i = 0; i < 16; i++) {
-        LOG_INFO_PAD("\t%x\n", (int)pad->transfer_buffer[i]);
-    }
+    LOG_INFO_PAD("\trecv packet: %u %u (x: %hu) (y: %hu) (force: %hu)\n",
+                  first_byte, pen_status, x, y, force);
     
-    LOG_INFO_PAD("next\n");
-
     input_sync(pad->input_device);
 }
 
