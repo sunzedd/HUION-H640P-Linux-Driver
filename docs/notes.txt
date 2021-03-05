@@ -162,4 +162,21 @@ sent to a interrupt endpoint of a USB device:
 В нашем случае - 2 милисекунды.
 
 
+	However EV_ABS requires a little special care. Before calling input_register_device,
+you have to fill additional fields in the input_dev struct for each absolute
+axis your device has. If our button device had also the ABS_X axis:
+
+button_dev.absmin[ABS_X] = 0;
+button_dev.absmax[ABS_X] = 255;
+button_dev.absfuzz[ABS_X] = 4;
+button_dev.absflat[ABS_X] = 8;
+
+Or, you can just say:
+
+input_set_abs_params(button_dev, ABS_X, 0, 255, 4, 8);
+
+	This setting would be appropriate for a joystick X axis, with the minimum of 0,
+maximum of 255 (which the joystick must be able to reach, no problem if it
+sometimes reports more, but it must be able to always reach the min and max values),
+with noise in the data up to +- 4, and with a center flat position of size 8.
     
