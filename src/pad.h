@@ -21,6 +21,21 @@ struct pad {
     dma_addr_t      dma;
 };
 
+static
+void pad_parse_transfer_buffer(struct pad *pad) {
+
+    //LOG_INFO_PAD("\tPAD transfer_buffer: %s\n", pad->transfer_buffer);
+
+    unsigned char buf[64];
+    for (int i = 0; i < 16; i++) {
+        LOG_INFO_PAD("\t%x\n", (int)pad->transfer_buffer[i]);
+    }
+    
+    LOG_INFO_PAD("next\n");
+
+    input_sync(pad->input_device);
+}
+
 
 static
 void pad_irq(struct urb *urb) {
@@ -29,9 +44,7 @@ void pad_irq(struct urb *urb) {
     struct pad *pad = urb->context;
 
     if (urb->status == 0) {
-        LOG_INFO_PAD("\tPAD transfer_buffer: %s\n", pad->transfer_buffer);
-
-        input_sync(pad->input_device);
+        pad_parse_transfer_buffer(pad);
 
         rc = usb_submit_urb(pad->urb, GFP_ATOMIC);
         if (rc) {
