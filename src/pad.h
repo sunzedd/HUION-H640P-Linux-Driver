@@ -5,19 +5,23 @@
 #include <linux/slab.h>
 #include <linux/usb/input.h>
 
-//#include <stdint.h>
-
 #include "fetch_dev_info.h"
+
+#define MAX_PEN_PRESSURE            8191
+#define MAX_PAD_RESOLUTION_VALUE    32767
+
+#define MAX_SCREEN_X    1920
+#define MAX_SCREEN_Y    1080
+
+#define X_FACTOR    MAX_SCREEN_X / MAX_PAD_RESOLUTION_VALUE + 1
+#define Y_FACTOR    MAX_SCREEN_Y / MAX_PAD_RESOLUTION_VALUE + 1
 
 
 struct pad {
     char    phys[32];
-
     struct usb_device   *usb_device;
     struct input_dev    *input_device;
-
     struct urb      *urb;
-
     unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.
     unsigned int    transfer_buffer_size;
     dma_addr_t      dma;
@@ -29,18 +33,25 @@ void pad_parse_transfer_buffer(struct pad *pad) {
     uint8_t pen_status;
     uint16_t x; 
     uint16_t y; 
-    uint16_t force; 
+    uint16_t pressure; 
 
-    first_byte = pad->transfer_buffer[0];
-    pen_status = pad->transfer_buffer[1];
-    memcpy(&x, &pad->transfer_buffer[2], 2);
-    memcpy(&y, &pad->transfer_buffer[4], 2);
-    memcpy(&force, &pad->transfer_buffer[6], 2);
+    unsigned char *data = pad->transfer_buffer;
 
-    LOG_INFO_PAD("\trecv packet: %u %u (x: %hu) (y: %hu) (force: %hu)\n",
-                  first_byte, pen_status, x, y, force);
+    first_byte = data[0];
+    pen_status = data[1];
+    memcpy(&x, &data[2], 2);
+    memcpy(&y, &data[4], 2);
+    memcpy(&pressure, &data[6], 2);
     
+    LOG_INFO_PAD("recv packet: %02x %02x (x: %02x = %hu) (y: %02x = %hu) (pressure: %hu)\n",
+                  first_byte, pen_status, x, x, y, y, pressure);
+    
+    input_report_abs(pad->input_device, ABS_X, x * X_FACTOR);
+    input_report_abs(pad->input_device, ABS_Y, y * Y_FACTOR);
+    input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
     input_sync(pad->input_device);
+
+    LOG_INFO_PAD("reported x,y: %d, %d\n", x * X_FACTOR, y * Y_FACTOR);
 }
 
 
@@ -140,6 +151,34 @@ int pad_probe(struct usb_interface *interface,
 
     pad->input_device->open = pad_open;
     pad->input_device->close = pad_close;
+
+//----------------------------------------------------------------------------
+    // Типы событий
+    __set_bit(EV_ABS, pad->input_device->evbit);
+    __set_bit(EV_KEY, pad->input_device->evbit);
+
+    // События абсолютного ввода
+    __set_bit(ABS_X, pad->input_device->absbit);
+    __set_bit(ABS_Y, pad->input_device->absbit);
+    __set_bit(ABS_PRESSURE, pad->input_device->absbit);
+
+    // События кнопок
+    __set_bit(BTN_TOUCH, pad->input_device->keybit);
+    __set_bit(BTN_TOOL_PEN, pad->input_device->keybit);
+    __set_bit(BTN_TOOL_RUBBER, pad->input_device->keybit);
+    __set_bit(BTN_STYLUS2, pad->input_device->keybit);
+    __set_bit(BTN_STYLUS, pad->input_device->keybit);
+    __set_bit(BTN_LEFT, pad->input_device->keybit);
+
+    input_set_abs_params(pad->input_device, ABS_X, 0, MAX_SCREEN_X, 0, 0);
+    input_abs_set_res(pad->input_device, ABS_X, MAX_PAD_RESOLUTION_VALUE);
+
+    input_set_abs_params(pad->input_device, ABS_Y, 0, MAX_SCREEN_Y, 0, 0);
+    input_abs_set_res(pad->input_device, ABS_Y, MAX_PAD_RESOLUTION_VALUE);
+
+    input_set_abs_params(pad->input_device, ABS_PRESSURE, 0, MAX_PEN_PRESSURE, 0, 0);
+
+    //__set_bit(INPUT_PROP_DIRECT, pad->input_device->propbit);
 
     pad->urb = usb_alloc_urb(0, GFP_KERNEL);
     if (!pad->urb) {
