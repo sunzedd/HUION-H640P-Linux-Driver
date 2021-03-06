@@ -62,8 +62,8 @@ int drawpad_probe(struct usb_interface *interface,
 
     switch (get_drawpad_interface_type(interface)) {
         case PEN:
-            drawpad_object.pen_interface = interface;
-            rc = pen_probe(interface, dev_id);
+            //drawpad_object.pen_interface = interface;
+            //rc = pen_probe(interface, dev_id);
             break;
 
         case PAD:
@@ -83,7 +83,7 @@ void drawpad_disconnect(struct usb_interface* interface) {
     LOG_INFO("call drawpad_disconnect");
 
     switch (get_drawpad_interface_type(interface)) {
-        case PEN: pen_disconnect(interface); break;
+       // case PEN: pen_disconnect(interface); break;
         case PAD: pad_disconnect(interface); break;
     }
 }
