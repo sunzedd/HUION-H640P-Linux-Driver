@@ -5,7 +5,7 @@
 
 #include "fetch_dev_info.h"
 #include "pad.h"
-#include "pen.h"
+//#include "pen.h"
 
 
 #define DRIVER_NAME     "Huion H640P Driver"
