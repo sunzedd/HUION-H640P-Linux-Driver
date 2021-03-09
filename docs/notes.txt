@@ -444,3 +444,19 @@ BTN_{0,1,2,etc} are good generic codes for unlabeled buttons. Do not use
 meaningful buttons, like BTN_FORWARD, unless the button is labeled for that
 purpose on the device.
 For new hardware, both INPUT_PROP_DIRECT and INPUT_PROP_POINTER should be set.
+
+
+Note: Historically a touch device with BTN_TOOL_FINGER and BTN_TOUCH was
+interpreted as a touchpad by userspace, while a similar device without
+BTN_TOOL_FINGER was interpreted as a touchscreen. For backwards compatibility
+with current userspace it is recommended to follow this distinction. In the
+future, this distinction will be deprecated and the device properties ioctl
+EVIOCGPROP, defined in linux/input.h, will be used to convey the device type.
+
+
+
+----------- Значения, передаваемые планшетом:
+	Стилус касается планшета:
+		0xC1 - 	11000001
+		0xC3 -	11000011
+		0xC5 -	11000101
