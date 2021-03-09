@@ -25,7 +25,14 @@ struct pad {
     unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.
     unsigned int    transfer_buffer_size;
     dma_addr_t      dma;
+
+    uint8_t pen_touchdown;
 };
+
+static
+void pad_init_pen_status(struct pad *pad) {
+    pad->pen_touchdown = 0;
+}
 
 static
 void pad_parse_transfer_buffer(struct pad *pad) {
@@ -43,15 +50,26 @@ void pad_parse_transfer_buffer(struct pad *pad) {
     memcpy(&y, &data[4], 2);
     memcpy(&pressure, &data[6], 2);
     
-    LOG_INFO_PAD("recv packet: %02x %02x (x: %02x = %hu) (y: %02x = %hu) (pressure: %hu)\n",
-                  first_byte, pen_status, x, x, y, y, pressure);
     
+    // report ABS
     input_report_abs(pad->input_device, ABS_X, x * X_FACTOR);
     input_report_abs(pad->input_device, ABS_Y, y * Y_FACTOR);
-    input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
-    input_sync(pad->input_device);
+    //input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
 
-    LOG_INFO_PAD("reported x,y: %d, %d\n", x * X_FACTOR, y * Y_FACTOR);
+
+    if (pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5) {
+        if (!pad->pen_touchdown)
+            pad->pen_touchdown = 1;
+    } else {
+        if (pad->pen_touchdown)
+            pad->pen_touchdown = 0;
+    }
+
+    input_report_key(pad->input_device,  BTN_LEFT, pad->pen_touchdown);
+
+    //LOG_INFO_PAD("[pen_status & 0x01: %d] [x: %hu] [y: %hu] [press: %hu]\n", touchdown, x * X_FACTOR, y * Y_FACTOR, pressure);
+
+    input_sync(pad->input_device);
 }
 
 
@@ -156,6 +174,7 @@ int pad_probe(struct usb_interface *interface,
     // Типы событий
     __set_bit(EV_ABS, pad->input_device->evbit);
     __set_bit(EV_KEY, pad->input_device->evbit);
+    //__set_bit(EV_MSC, pad->input_device->evbit);
 
     // События абсолютного ввода
     __set_bit(ABS_X, pad->input_device->absbit);
@@ -163,22 +182,15 @@ int pad_probe(struct usb_interface *interface,
     __set_bit(ABS_PRESSURE, pad->input_device->absbit);
 
     // События кнопок
-    __set_bit(BTN_TOUCH, pad->input_device->keybit);
-    __set_bit(BTN_TOOL_PEN, pad->input_device->keybit);
-    __set_bit(BTN_TOOL_RUBBER, pad->input_device->keybit);
-    __set_bit(BTN_STYLUS2, pad->input_device->keybit);
-    __set_bit(BTN_STYLUS, pad->input_device->keybit);
     __set_bit(BTN_LEFT, pad->input_device->keybit);
 
     input_set_abs_params(pad->input_device, ABS_X, 0, MAX_SCREEN_X, 0, 0);
     input_abs_set_res(pad->input_device, ABS_X, MAX_PAD_RESOLUTION_VALUE);
-
     input_set_abs_params(pad->input_device, ABS_Y, 0, MAX_SCREEN_Y, 0, 0);
     input_abs_set_res(pad->input_device, ABS_Y, MAX_PAD_RESOLUTION_VALUE);
-
     input_set_abs_params(pad->input_device, ABS_PRESSURE, 0, MAX_PEN_PRESSURE, 0, 0);
 
-    //__set_bit(INPUT_PROP_DIRECT, pad->input_device->propbit);
+    __set_bit(INPUT_PROP_DIRECT, pad->input_device->propbit);
 
     pad->urb = usb_alloc_urb(0, GFP_KERNEL);
     if (!pad->urb) {
@@ -207,7 +219,10 @@ int pad_probe(struct usb_interface *interface,
     
     rc = input_register_device(pad->input_device);
     if (rc == 0) {
+        
         usb_set_intfdata(interface, pad);
+        pad_init_pen_status(pad);
+
     } else {
         LOG_ERR_PAD("\tinput_register_device FAILURE\n");
         usb_free_urb(pad->urb);
