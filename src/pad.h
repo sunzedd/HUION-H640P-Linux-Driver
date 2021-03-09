@@ -27,12 +27,40 @@ struct pad {
     dma_addr_t      dma;
 
     uint8_t pen_touchdown;
+    uint8_t pen_above_pad; 
 };
+
 
 static
 void pad_init_pen_status(struct pad *pad) {
     pad->pen_touchdown = 0;
+    pad->pen_above_pad = 0;
 }
+
+static const int input_event_types[] = {
+    EV_ABS,
+    EV_KEY,
+};
+
+static const int abs_events[] = {
+    ABS_X,
+    ABS_Y,
+    ABS_PRESSURE,
+};
+
+static const int button_events[] = {
+    BTN_TOOL_PEN,
+    BTN_STYLUS,       
+    BTN_STYLUS2, 
+    BTN_TOUCH,
+};
+
+static const int drawpad_properties[] = {
+    INPUT_PROP_DIRECT,
+    INPUT_PROP_POINTER,
+};
+
+
 
 static
 void pad_parse_transfer_buffer(struct pad *pad) {
@@ -49,25 +77,45 @@ void pad_parse_transfer_buffer(struct pad *pad) {
     memcpy(&x, &data[2], 2);
     memcpy(&y, &data[4], 2);
     memcpy(&pressure, &data[6], 2);
-    
-    
-    // report ABS
-    input_report_abs(pad->input_device, ABS_X, x * X_FACTOR);
-    input_report_abs(pad->input_device, ABS_Y, y * Y_FACTOR);
-    //input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
 
 
-    if (pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5) {
-        if (!pad->pen_touchdown)
-            pad->pen_touchdown = 1;
+    // update state
+    if (!pad->pen_above_pad) {
+        if (pen_status == 0xc0 || pen_status == 0xc2 || pen_status == 0xc4) {
+            pad->pen_above_pad = 1;
+            input_report_key(pad->input_device, BTN_TOOL_PEN, 1);
+        }
+
     } else {
-        if (pad->pen_touchdown)
-            pad->pen_touchdown = 0;
+        if (!(pen_status == 0xc0 || pen_status == 0xc2 || pen_status == 0xc4 || 
+              pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5)) {
+
+            pad->pen_above_pad = 0;
+            input_report_key(pad->input_device, BTN_TOOL_PEN, 0);
+        }
     }
 
-    input_report_key(pad->input_device,  BTN_LEFT, pad->pen_touchdown);
+    if (!pad->pen_touchdown) {
+        if (pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5) {
+            pad->pen_touchdown = 1;
+            input_report_key(pad->input_device, BTN_TOUCH, 1);
+        }
 
-    //LOG_INFO_PAD("[pen_status & 0x01: %d] [x: %hu] [y: %hu] [press: %hu]\n", touchdown, x * X_FACTOR, y * Y_FACTOR, pressure);
+    } else {
+        if (!(pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5)) {
+            pad->pen_touchdown = 0;
+            input_report_key(pad->input_device, BTN_TOUCH, 0);
+        }
+    }
+
+    // TODO: report PRESSURE
+    if (pad->pen_above_pad || pad->pen_touchdown) {
+        input_report_abs(pad->input_device, ABS_X, x * X_FACTOR);
+        input_report_abs(pad->input_device, ABS_Y, y * Y_FACTOR);
+        input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
+    }
+
+    //LOG_INFO_PAD("%x, %hu, %hu\n", pen_status, x, y);
 
     input_sync(pad->input_device);
 }
@@ -171,26 +219,27 @@ int pad_probe(struct usb_interface *interface,
     pad->input_device->close = pad_close;
 
 //----------------------------------------------------------------------------
-    // Типы событий
-    __set_bit(EV_ABS, pad->input_device->evbit);
-    __set_bit(EV_KEY, pad->input_device->evbit);
-    //__set_bit(EV_MSC, pad->input_device->evbit);
+    for (int i = 0; i < (sizeof(input_event_types) / sizeof(int)); i++) {
+        __set_bit(input_event_types[i], pad->input_device->evbit);
+    }
 
-    // События абсолютного ввода
-    __set_bit(ABS_X, pad->input_device->absbit);
-    __set_bit(ABS_Y, pad->input_device->absbit);
-    __set_bit(ABS_PRESSURE, pad->input_device->absbit);
+    for (int i = 0; i < (sizeof(abs_events) / sizeof(int)); i++) {
+        __set_bit(abs_events[i], pad->input_device->absbit);
+    }
+    
+    for (int i = 0; i < (sizeof(button_events) / sizeof(int)); i++) {
+        __set_bit(button_events[i], pad->input_device->keybit);
+    }
 
-    // События кнопок
-    __set_bit(BTN_LEFT, pad->input_device->keybit);
+    for (int i = 0; i < (sizeof(drawpad_properties) / sizeof(int)); i++) {
+        __set_bit(drawpad_properties[i], pad->input_device->propbit);
+    }
 
     input_set_abs_params(pad->input_device, ABS_X, 0, MAX_SCREEN_X, 0, 0);
     input_abs_set_res(pad->input_device, ABS_X, MAX_PAD_RESOLUTION_VALUE);
     input_set_abs_params(pad->input_device, ABS_Y, 0, MAX_SCREEN_Y, 0, 0);
     input_abs_set_res(pad->input_device, ABS_Y, MAX_PAD_RESOLUTION_VALUE);
     input_set_abs_params(pad->input_device, ABS_PRESSURE, 0, MAX_PEN_PRESSURE, 0, 0);
-
-    __set_bit(INPUT_PROP_DIRECT, pad->input_device->propbit);
 
     pad->urb = usb_alloc_urb(0, GFP_KERNEL);
     if (!pad->urb) {

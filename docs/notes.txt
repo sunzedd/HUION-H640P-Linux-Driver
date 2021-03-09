@@ -180,17 +180,17 @@ maximum of 255 (which the joystick must be able to reach, no problem if it
 sometimes reports more, but it must be able to always reach the min and max values),
 with noise in the data up to +- 4, and with a center flat position of size 8.
     
-// EVTEST UTILITY
+// -------------------------------EVTEST UTILITY----------------------------------------
 
 Отчет мыши:
 
-Event: time 1615311059.811646, -------------- SYN_REPORT ------------
-Event: time 1615311060.757797, type 4 (EV_MSC), code 4 (MSC_SCAN), value 90001
-Event: time 1615311060.757797, type 1 (EV_KEY), code 272 (BTN_LEFT), value 1
+Event: time, -------------- SYN_REPORT ------------
+Event: time, type 4 (EV_MSC), code 4 (MSC_SCAN), value 90001
+Event: time, type 1 (EV_KEY), code 272 (BTN_LEFT), value 1
 
-Event: time 1615311060.757797, -------------- SYN_REPORT ------------
-Event: time 1615311061.288793, type 4 (EV_MSC), code 4 (MSC_SCAN), value 90001
-Event: time 1615311061.288793, type 1 (EV_KEY), code 272 (BTN_LEFT), value 0
+Event: time, -------------- SYN_REPORT ------------
+Event: time, type 4 (EV_MSC), code 4 (MSC_SCAN), value 90001
+Event: time, type 1 (EV_KEY), code 272 (BTN_LEFT), value 0
 
 Между двумя этими событиями левая кнопка мыши находится в зажатом положении,
 события не посылаются.
@@ -199,25 +199,248 @@ Event: time 1615311061.288793, type 1 (EV_KEY), code 272 (BTN_LEFT), value 0
 
 Отчет клавиатуры:
 
-Event: time 1615311222.441318, -------------- SYN_REPORT ------------
-Event: time 1615311230.029508, type 4 (EV_MSC), code 4 (MSC_SCAN), value 70014
-Event: time 1615311230.029508, type 1 (EV_KEY), code 16 (KEY_Q), value 1
-Event: time 1615311230.029508, -------------- SYN_REPORT ------------
-qEvent: time 1615311230.308043, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.308043, -------------- SYN_REPORT ------------
-Event: time 1615311230.347824, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.347824, -------------- SYN_REPORT ------------
-Event: time 1615311230.387831, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.387831, -------------- SYN_REPORT ------------
-Event: time 1615311230.427916, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.427916, -------------- SYN_REPORT ------------
-Event: time 1615311230.467922, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.467922, -------------- SYN_REPORT ------------
-Event: time 1615311230.507834, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.507834, -------------- SYN_REPORT ------------
-qEvent: time 1615311230.547918, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.547918, -------------- SYN_REPORT ------------
-qEvent: time 1615311230.587928, type 1 (EV_KEY), code 16 (KEY_Q), value 2
-Event: time 1615311230.587928, -------------- SYN_REPORT ------------
-qEvent: time 1615311230.587928, type 4 (EV_MSC), code 4 (MSC_SCAN), value 70014
-Event: time 1615311230.587928, type 1 (EV_KEY), code 16 (KEY_Q), value 0
+Event: time , -------------- SYN_REPORT ------------
+Event: time , type 4 (EV_MSC), code 4 (MSC_SCAN), value 70014
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 1
+Event: time , -------------- SYN_REPORT ------------
+qEvent: time, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+qEvent: time, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+qEvent: time, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time , -------------- SYN_REPORT ------------
+qEvent: time, type 4 (EV_MSC), code 4 (MSC_SCAN), value 70014
+Event: time , type 1 (EV_KEY), code 16 (KEY_Q), value 0
+
+
+Тачпад:
+	ТЕСТ КЕЙС №1:
+		1. Палец касается тачпада
+		2. Палец двигает курсор
+		3. Палец убирается с тачпада.
+
+		-------------- SYN_REPORT ------------
+		Event: time, type 3 (EV_ABS), code 57 (ABS_MT_TRACKING_ID), value 24
+		Event: time, type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 644
+		Event: time, type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 541
+		Event: time, type 1 (EV_KEY), code 330 (BTN_TOUCH), value 1
+		Event: time, type 1 (EV_KEY), code 325 (BTN_TOOL_FINGER), value 1
+		Event: time, type 3 (EV_ABS), code 0 (ABS_X), value 644
+		Event: time, type 3 (EV_ABS), code 1 (ABS_Y), value 541
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 0
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 7100
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 14200
+		Event: time, -------------- SYN_REPORT ------------
+
+					...			....			...			..	..	
+
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 49700
+
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 3 (EV_ABS), code 57 (ABS_MT_TRACKING_ID), value -1
+		Event: time, type 1 (EV_KEY), code 330 (BTN_TOUCH), value 0
+		Event: time, type 1 (EV_KEY), code 325 (BTN_TOOL_FINGER), value 0
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 56800
+
+
+	ТЕСТ КЕЙС №2:
+		1. Палец касается тачпада
+		2. Палец кликает левую кнопку тачпада
+		3. Палец убирается с тачпада.
+
+		Event: time, type 3 (EV_ABS), code 57 (ABS_MT_TRACKING_ID), value 61
+		Event: time, type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 313
+		Event: time, type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 576
+		Event: time, type 1 (EV_KEY), code 330 (BTN_TOUCH), value 1
+		Event: time, type 1 (EV_KEY), code 325 (BTN_TOOL_FINGER), value 1
+		Event: time, type 3 (EV_ABS), code 0 (ABS_X), value 313
+		Event: time, type 3 (EV_ABS), code 1 (ABS_Y), value 576
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 0
+
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 7100
+
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 14200
+
+				...					...			...
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 92300
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 575
+		Event: time, type 3 (EV_ABS), code 1 (ABS_Y), value 575
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 99400
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 314
+		Event: time, type 3 (EV_ABS), code 0 (ABS_X), value 314
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 113600
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 1 (EV_KEY), code 272 (BTN_LEFT), value 0
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 127800
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 134900
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 142000
+		
+		Event: time, -------------- SYN_REPORT ------------
+		Event: time, type 3 (EV_ABS), code 57 (ABS_MT_TRACKING_ID), value -1
+		Event: time, type 1 (EV_KEY), code 330 (BTN_TOUCH), value 0
+		Event: time, type 1 (EV_KEY), code 325 (BTN_TOOL_FINGER), value 0
+		Event: time, type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 149100
+
+
+
+	ТЕСТ КЕЙС №3:
+		1. Палец касается тачпада
+		2. Палец кликает левую кнопку тачпада
+		3. Палец производит свайп (слайд) по поверхности тачпада.
+		4. Палец убирается с тачпада.
+
+
+		 type 3 (EV_ABS), code 57 (ABS_MT_TRACKING_ID), value 78
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 316
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 549
+		 type 1 (EV_KEY), code 330 (BTN_TOUCH), value 1
+		 type 1 (EV_KEY), code 325 (BTN_TOOL_FINGER), value 1
+		 type 3 (EV_ABS), code 0 (ABS_X), value 316
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 549
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 0
+
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 7100
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 14200
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 21300
+		 -------------- SYN_REPORT ------------
+		 type 1 (EV_KEY), code 272 (BTN_LEFT), value 1
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 28400
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 35500
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 42600
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 49700
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 56800
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 63900
+
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 548
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 548
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 71000
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 317
+		 type 3 (EV_ABS), code 0 (ABS_X), value 317
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 78100
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 547
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 547
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 85200
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 318
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 546
+		 type 3 (EV_ABS), code 0 (ABS_X), value 318
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 546
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 92300
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 319
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 545
+		 type 3 (EV_ABS), code 0 (ABS_X), value 319
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 545
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 99400
+
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 797
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 455
+		 type 3 (EV_ABS), code 0 (ABS_X), value 797
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 455
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 298200
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 804
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 454
+		 type 3 (EV_ABS), code 0 (ABS_X), value 804
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 454
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 305300
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 53 (ABS_MT_POSITION_X), value 806
+		 type 3 (EV_ABS), code 54 (ABS_MT_POSITION_Y), value 453
+		 type 3 (EV_ABS), code 0 (ABS_X), value 806
+		 type 3 (EV_ABS), code 1 (ABS_Y), value 453
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 312400
+		 -------------- SYN_REPORT ------------
+		 type 1 (EV_KEY), code 272 (BTN_LEFT), value 0
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 319500
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 326600
+		 -------------- SYN_REPORT ------------
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 333700
+
+		 -------------- SYN_REPORT ------------
+		 type 3 (EV_ABS), code 57 (ABS_MT_TRACKING_ID), value -1
+		 type 1 (EV_KEY), code 330 (BTN_TOUCH), value 0
+		 type 1 (EV_KEY), code 325 (BTN_TOOL_FINGER), value 0
+		 type 4 (EV_MSC), code 5 (MSC_TIMESTAMP), value 340800
+		 -------------- SYN_REPORT ------------
+
+
+https://android.googlesource.com/kernel/msm/+/android-msm-flo-3.4-kitkat-mr1/Documentation/input/event-codes.txt
+
+
+INPUT_PROP_DIRECT + INPUT_PROP_POINTER:
+--------------------------------------
+The INPUT_PROP_DIRECT property indicates that device coordinates should be
+directly mapped to screen coordinates (not taking into account trivial
+transformations, such as scaling, flipping and rotating). Non-direct input
+devices require non-trivial transformation, such as absolute to relative
+transformation for touchpads. Typical direct input devices: touchscreens,
+drawing tablets; non-direct devices: touchpads, mice.
+The INPUT_PROP_POINTER property indicates that the device is not transposed
+on the screen and thus requires use of an on-screen pointer to trace user's
+movements.  Typical pointer devices: touchpads, tablets, mice; non-pointer
+device: touchscreen.
+If neither INPUT_PROP_DIRECT or INPUT_PROP_POINTER are set, the property is
+considered undefined and the device type should be deduced in the
+traditional way, using emitted event types.
+INPUT_PROP_BUTTONPAD:
+--------------------
+For touchpads where the button is placed beneath the surface, such that
+pressing down on the pad causes a button click, this property should be
+set. Common in clickpad notebooks and macbooks from 2009 and onwards.
+Originally, the buttonpad property was coded into the bcm5974 driver
+version field under the name integrated button. For backwards
+compatibility, both methods need to be checked in userspace.
+
+
+Tablets:
+----------
+BTN_TOOL_<name> events must be reported when a stylus or other tool is active on
+the tablet. ABS_{X,Y} must be reported with the location of the tool. BTN_TOUCH
+should be used to report when the tool is in contact with the tablet.
+BTN_{STYLUS,STYLUS2} should be used to report buttons on the tool itself. Any
+button may be used for buttons on the tablet except BTN_{MOUSE,LEFT}.
+BTN_{0,1,2,etc} are good generic codes for unlabeled buttons. Do not use
+meaningful buttons, like BTN_FORWARD, unless the button is labeled for that
+purpose on the device.
+For new hardware, both INPUT_PROP_DIRECT and INPUT_PROP_POINTER should be set.
