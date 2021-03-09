@@ -180,3 +180,44 @@ maximum of 255 (which the joystick must be able to reach, no problem if it
 sometimes reports more, but it must be able to always reach the min and max values),
 with noise in the data up to +- 4, and with a center flat position of size 8.
     
+// EVTEST UTILITY
+
+Отчет мыши:
+
+Event: time 1615311059.811646, -------------- SYN_REPORT ------------
+Event: time 1615311060.757797, type 4 (EV_MSC), code 4 (MSC_SCAN), value 90001
+Event: time 1615311060.757797, type 1 (EV_KEY), code 272 (BTN_LEFT), value 1
+
+Event: time 1615311060.757797, -------------- SYN_REPORT ------------
+Event: time 1615311061.288793, type 4 (EV_MSC), code 4 (MSC_SCAN), value 90001
+Event: time 1615311061.288793, type 1 (EV_KEY), code 272 (BTN_LEFT), value 0
+
+Между двумя этими событиями левая кнопка мыши находится в зажатом положении,
+события не посылаются.
+
+
+
+Отчет клавиатуры:
+
+Event: time 1615311222.441318, -------------- SYN_REPORT ------------
+Event: time 1615311230.029508, type 4 (EV_MSC), code 4 (MSC_SCAN), value 70014
+Event: time 1615311230.029508, type 1 (EV_KEY), code 16 (KEY_Q), value 1
+Event: time 1615311230.029508, -------------- SYN_REPORT ------------
+qEvent: time 1615311230.308043, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.308043, -------------- SYN_REPORT ------------
+Event: time 1615311230.347824, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.347824, -------------- SYN_REPORT ------------
+Event: time 1615311230.387831, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.387831, -------------- SYN_REPORT ------------
+Event: time 1615311230.427916, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.427916, -------------- SYN_REPORT ------------
+Event: time 1615311230.467922, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.467922, -------------- SYN_REPORT ------------
+Event: time 1615311230.507834, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.507834, -------------- SYN_REPORT ------------
+qEvent: time 1615311230.547918, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.547918, -------------- SYN_REPORT ------------
+qEvent: time 1615311230.587928, type 1 (EV_KEY), code 16 (KEY_Q), value 2
+Event: time 1615311230.587928, -------------- SYN_REPORT ------------
+qEvent: time 1615311230.587928, type 4 (EV_MSC), code 4 (MSC_SCAN), value 70014
+Event: time 1615311230.587928, type 1 (EV_KEY), code 16 (KEY_Q), value 0
