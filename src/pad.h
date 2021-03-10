@@ -4,6 +4,7 @@
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/usb/input.h>
+#include <linux/interrupt.h>
 
 #include "fetch_dev_info.h"
 
@@ -30,6 +31,7 @@ struct pad {
     uint8_t pen_above_pad; 
 };
 
+static struct pad *pad;
 
 static
 void pad_init_pen_status(struct pad *pad) {
@@ -60,9 +62,7 @@ static const int drawpad_properties[] = {
     INPUT_PROP_POINTER,
 };
 
-
-static
-void pad_parse_transfer_buffer(struct pad *pad) {
+static void tasklet_handler(unsigned long tasklet_data) {
     uint8_t header;
     uint8_t pen_status;
     uint16_t x; 
@@ -132,6 +132,8 @@ void pad_parse_transfer_buffer(struct pad *pad) {
     input_sync(pad->input_device);
 }
 
+DECLARE_TASKLET(pad_tasklet, tasklet_handler, 0);
+
 
 static
 void pad_irq(struct urb *urb) {
@@ -140,7 +142,8 @@ void pad_irq(struct urb *urb) {
     struct pad *pad = urb->context;
 
     if (urb->status == 0) {
-        pad_parse_transfer_buffer(pad);
+
+        tasklet_schedule(&pad_tasklet);
 
         rc = usb_submit_urb(pad->urb, GFP_ATOMIC);
         if (rc) {
@@ -185,7 +188,7 @@ int pad_probe(struct usb_interface *interface,
     struct usb_endpoint_descriptor *endpoint = 
         &interface->cur_altsetting->endpoint[0].desc;
 
-    struct pad *pad = kzalloc(sizeof(struct pad), GFP_KERNEL);
+    pad = kzalloc(sizeof(struct pad), GFP_KERNEL);
     if (!pad) {
         LOG_ERR_PAD("\tstruct pad allocation FAILURE\n");
         return rc;
