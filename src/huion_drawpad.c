@@ -2,10 +2,7 @@
 #define __HUION_DRAWPAD__
 
 #include <linux/module.h>
-
-#include "fetch_dev_info.h"
 #include "pad.h"
-//#include "pen.h"
 
 
 #define DRIVER_NAME     "Huion H640P Driver"
@@ -13,16 +10,6 @@
 
 #define VENDOR_ID     0x256c    // Huion Animation Co.
 #define PRODUCT_ID    0x006d    // H640P Drawpad
-
-
-typedef 
-struct {
-    struct usb_interface *pen_interface;
-    struct usb_interface *pad_interface;
-    struct usb_device *device;
-} drawpad_t;
-
-static drawpad_t drawpad_object;
 
 
 /*                     Driver Entry Points Headers                   */
@@ -43,8 +30,8 @@ static
 struct usb_driver drawpad_driver = {
     .name = DRIVER_NAME,
     .id_table = devices_table,
-    .probe = drawpad_probe,                     // probe - driver entry point
-    .disconnect = drawpad_disconnect,           // disconnect - entry point 2
+    .probe = drawpad_probe,
+    .disconnect = drawpad_disconnect,
 };
 
 
@@ -52,50 +39,37 @@ static
 int drawpad_probe(struct usb_interface *interface, 
                   const struct usb_device_id *dev_id) {
 
-    LOG_INFO("probe device (%04x:%04X)", dev_id->idVendor, dev_id->idProduct);
+    LOG_INFO("probe device (%04x:%04X)\n", dev_id->idVendor, dev_id->idProduct);
     
-    int rc = 0;
+    int rc = -1;
 
-    if (drawpad_object.device == NULL) {
-        drawpad_object.device = interface_to_usbdev(interface);
-    }
-
-    switch (get_drawpad_interface_type(interface)) {
-        case PEN:
-            //drawpad_object.pen_interface = interface;
-            //rc = pen_probe(interface, dev_id);
-            break;
-
-        case PAD:
-            drawpad_object.pad_interface = interface;
-            rc = pad_probe(interface, dev_id);
-            break;
-    }
+    struct usb_host_interface *interface_desc = interface->cur_altsetting;
+    int interface_number = interface_desc->desc.bInterfaceNumber;
     
-    LOG_INFO("\n");
-
+    if (interface_number == 1) {
+        rc = pad_probe(interface, dev_id);
+    }
+   
     return rc;
 }
 
 static 
 void drawpad_disconnect(struct usb_interface* interface) {
-
-    LOG_INFO("call drawpad_disconnect");
-
-    switch (get_drawpad_interface_type(interface)) {
-       // case PEN: pen_disconnect(interface); break;
-        case PAD: pad_disconnect(interface); break;
+    LOG_INFO("disconnect device\n");
+    
+    struct usb_host_interface *interface_desc = interface->cur_altsetting;
+    int interface_number = interface_desc->desc.bInterfaceNumber;
+    
+    if (interface_number == 1) {
+        pad_disconnect(interface);
     }
 }
 
 static 
 int __init drawpad_init(void) {
 
-    int rc = 0;
-
-    if (0 == (rc = usb_register(&drawpad_driver))) {    // регистрация ДРАЙВЕРА в подстистеме USB.
-        LOG_INFO("call usb_register: OK\n");
-    } else {
+    int rc = usb_register(&drawpad_driver);
+    if (rc != 0) {
         LOG_ERR("call usb_register: FAILED\n");
     }
 
@@ -104,7 +78,6 @@ int __init drawpad_init(void) {
 
 static 
 void __exit drawpad_exit(void) {
-    LOG_INFO("call usb_deregister\n"); // дерегистрация ДРАЙВЕРА в подстистеме USB.
     usb_deregister(&drawpad_driver);
 }
 

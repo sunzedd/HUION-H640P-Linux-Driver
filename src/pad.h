@@ -22,7 +22,7 @@ struct pad {
     struct usb_device   *usb_device;
     struct input_dev    *input_device;
     struct urb      *urb;
-    unsigned char   *transfer_buffer;   // буфер для чтения данных из устройства.
+    unsigned char   *transfer_buffer;
     unsigned int    transfer_buffer_size;
     dma_addr_t      dma;
 
@@ -61,10 +61,9 @@ static const int drawpad_properties[] = {
 };
 
 
-
 static
 void pad_parse_transfer_buffer(struct pad *pad) {
-    uint8_t first_byte;
+    uint8_t header;
     uint8_t pen_status;
     uint16_t x; 
     uint16_t y; 
@@ -72,50 +71,63 @@ void pad_parse_transfer_buffer(struct pad *pad) {
 
     unsigned char *data = pad->transfer_buffer;
 
-    first_byte = data[0];
+    header = data[0];
     pen_status = data[1];
     memcpy(&x, &data[2], 2);
     memcpy(&y, &data[4], 2);
     memcpy(&pressure, &data[6], 2);
 
+    if (header != 0xa) {
+        LOG_ERR_PAD("Invalid packet recieved. Header = %x\n", header);
+        return;
+    }
 
-    // update state
     if (!pad->pen_above_pad) {
-        if (pen_status == 0xc0 || pen_status == 0xc2 || pen_status == 0xc4) {
+        if(pen_status & 0xc0) {
             pad->pen_above_pad = 1;
             input_report_key(pad->input_device, BTN_TOOL_PEN, 1);
         }
 
     } else {
-        if (!(pen_status == 0xc0 || pen_status == 0xc2 || pen_status == 0xc4 || 
-              pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5)) {
-
+        if (!(pen_status & 0xc0)) {
             pad->pen_above_pad = 0;
             input_report_key(pad->input_device, BTN_TOOL_PEN, 0);
         }
     }
 
     if (!pad->pen_touchdown) {
-        if (pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5) {
+        if (pen_status & 0x1) {
             pad->pen_touchdown = 1;
             input_report_key(pad->input_device, BTN_TOUCH, 1);
         }
 
     } else {
-        if (!(pen_status == 0xc1 || pen_status == 0xc3 || pen_status == 0xc5)) {
+        if (!(pen_status & 0x1)) {
             pad->pen_touchdown = 0;
             input_report_key(pad->input_device, BTN_TOUCH, 0);
         }
     }
 
-    // TODO: report PRESSURE
+    if (pen_status & 0x2) {
+        input_report_key(pad->input_device, BTN_STYLUS, 1);
+    } else {
+        input_report_key(pad->input_device, BTN_STYLUS, 0);
+    }
+
+    if (pen_status & 0x4) {
+        input_report_key(pad->input_device, BTN_STYLUS2, 1);
+    } else {
+        input_report_key(pad->input_device, BTN_STYLUS2, 0);
+    }
+
     if (pad->pen_above_pad || pad->pen_touchdown) {
         input_report_abs(pad->input_device, ABS_X, x * X_FACTOR);
         input_report_abs(pad->input_device, ABS_Y, y * Y_FACTOR);
         input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
     }
 
-    //LOG_INFO_PAD("%x, %hu, %hu\n", pen_status, x, y);
+    LOG_INFO_PAD("%x %x, %hu, %hu\n", header, pen_status, x, y);
+    LOG_INFO_PAD("%x %x %x %x %x\n", header, pen_status, x, y, pressure);
 
     input_sync(pad->input_device);
 }
@@ -148,8 +160,7 @@ void pad_irq(struct urb *urb) {
 
 static
 int pad_open(struct input_dev* input_device) {
-    LOG_INFO_PAD("pad opened\n");
-    
+
     struct pad *pad = input_get_drvdata(input_device);
 
     if (usb_submit_urb(pad->urb, GFP_KERNEL)) {
@@ -161,8 +172,6 @@ int pad_open(struct input_dev* input_device) {
 
 static
 void pad_close(struct input_dev* input_device) {
-    LOG_INFO_PAD("pad closed\n");
-
     struct pad *pad = input_get_drvdata(input_device);
     usb_kill_urb(pad->urb);
 }
@@ -171,8 +180,6 @@ static
 int pad_probe(struct usb_interface *interface,
               const struct usb_device_id *dev_id) {
 
-    LOG_INFO_PAD("\tcall pad_probe\n");
-    
     int rc = -ENOMEM;
 
     struct usb_endpoint_descriptor *endpoint = 
@@ -203,8 +210,6 @@ int pad_probe(struct usb_interface *interface,
         return rc;
     }
 
-    LOG_INFO_PAD("\tendpoint->wMaxPacketSize %d\n", endpoint->wMaxPacketSize);
-
     usb_make_path(pad->usb_device, pad->phys, sizeof(pad->phys));
     strlcat(pad->phys, "/input0", sizeof(pad->phys));
 
@@ -218,21 +223,21 @@ int pad_probe(struct usb_interface *interface,
     pad->input_device->open = pad_open;
     pad->input_device->close = pad_close;
 
-//----------------------------------------------------------------------------
+
     for (int i = 0; i < (sizeof(input_event_types) / sizeof(int)); i++) {
-        __set_bit(input_event_types[i], pad->input_device->evbit);
+        set_bit(input_event_types[i], pad->input_device->evbit);
     }
 
     for (int i = 0; i < (sizeof(abs_events) / sizeof(int)); i++) {
-        __set_bit(abs_events[i], pad->input_device->absbit);
+        set_bit(abs_events[i], pad->input_device->absbit);
     }
     
     for (int i = 0; i < (sizeof(button_events) / sizeof(int)); i++) {
-        __set_bit(button_events[i], pad->input_device->keybit);
+        set_bit(button_events[i], pad->input_device->keybit);
     }
 
     for (int i = 0; i < (sizeof(drawpad_properties) / sizeof(int)); i++) {
-        __set_bit(drawpad_properties[i], pad->input_device->propbit);
+        set_bit(drawpad_properties[i], pad->input_device->propbit);
     }
 
     input_set_abs_params(pad->input_device, ABS_X, 0, MAX_SCREEN_X, 0, 0);
@@ -251,13 +256,9 @@ int pad_probe(struct usb_interface *interface,
         return rc;
     }
 
-    // Флаг, указывающий требование использовать DMA буфер вместо transfer_buffer
     pad->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
     
     int urb_pipe = usb_rcvintpipe(pad->usb_device, endpoint->bEndpointAddress);
-
-    LOG_INFO_PAD("\tendpoint->bEndpointAddress = %x\n", endpoint->bEndpointAddress);
-    LOG_INFO_PAD("\turb rcvintpipe = %d\n", urb_pipe);
 
 
     usb_fill_int_urb(pad->urb, pad->usb_device, urb_pipe,
@@ -287,8 +288,6 @@ int pad_probe(struct usb_interface *interface,
 static
 void pad_disconnect(struct usb_interface *interface) {
     
-    LOG_INFO_PAD("\tcall pad_disconnect\n");
-
     struct pad *pad = usb_get_intfdata(interface);
     if (pad) {
         usb_kill_urb(pad->urb);
