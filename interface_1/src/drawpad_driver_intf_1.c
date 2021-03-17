@@ -206,8 +206,8 @@ static void tasklet_handler(unsigned long tasklet_data) {
         input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
     }
 
-    LOG_INFO_INTF_1("head: %x, pen: %x, x: %hu, y: %hu, press: %hu\n",
-                     header, pen_status, x * X_FACTOR, y * Y_FACTOR, pressure);
+    //LOG_INFO_INTF_1("head: %x, pen: %x, x: %hu, y: %hu, press: %hu\n",
+    //                 header, pen_status, x * X_FACTOR, y * Y_FACTOR, pressure);
 
     input_sync(pad->input_device);
 }
@@ -226,6 +226,8 @@ static void pad_irq(struct urb *urb) {
         int rc = usb_submit_urb(pad->urb, GFP_ATOMIC);
         if (rc) {
             LOG_ERR_INTF_1("\tfailed to submit urb\n");
+        } else {
+            LOG_INFO_INTF_1("submited urb\n");
         }
 
     } else {
@@ -244,17 +246,20 @@ static void pad_irq(struct urb *urb) {
 }
 
 static int open_interface_1(struct input_dev* input_device) {
-
+    LOG_INFO_INTF_1("open\n");
     struct drawpad *pad = input_get_drvdata(input_device);
 
     if (usb_submit_urb(pad->urb, GFP_KERNEL)) {
         return -EIO;
+    } else {
+        LOG_INFO_INTF_1("submited urb\n");
     }
 
     return 0;
 }
 
 static void close_interface_1(struct input_dev* input_device) {
+    LOG_INFO_INTF_1("close\n");
     struct drawpad *pad = input_get_drvdata(input_device);
     usb_kill_urb(pad->urb);
 }
@@ -293,9 +298,9 @@ static int probe_interface_1(struct usb_interface *interface,
     }
 
     usb_make_path(pad->usb_device, pad->phys, sizeof(pad->phys));
-    strlcat(pad->phys, "/input0", sizeof(pad->phys));
+    strlcat(pad->phys, "/input1", sizeof(pad->phys));
 
-    pad->input_device->name = "Huion H640P Pad";
+    pad->input_device->name = "Huion H640P Drawpad Interface 1";
     pad->input_device->phys = pad->phys;
     usb_to_input_id(pad->usb_device, &pad->input_device->id);
     pad->input_device->dev.parent = &interface->dev;
@@ -354,6 +359,10 @@ static int probe_interface_1(struct usb_interface *interface,
     if (rc == 0) {
         usb_set_intfdata(interface, pad);
         pad_init_pen_status(pad);
+
+        LOG_INFO_INTF_1("interface->minor %d\n", interface->minor);
+        LOG_INFO_INTF_1("pad->input_device->dev->driver->name %s\n",
+                         pad->input_device->dev.driver->name);
     } else {
         LOG_ERR_INTF_1("\tinput_register_device FAILURE\n");
         usb_free_urb(pad->urb);
