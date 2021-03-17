@@ -7,7 +7,7 @@
 #include <linux/usb/input.h>
 #include <linux/interrupt.h>
 
-#include "../log_utils.h"
+#include "log_utils.h"
 
 
 #define MAX_PEN_PRESSURE            8191
