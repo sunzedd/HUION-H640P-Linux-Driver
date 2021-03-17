@@ -7,10 +7,10 @@
     "\033[1m\033[33m" "[Huion H640P]: " "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
 
 #define LOG_PEN(x, ...) \
-    "\033[0;32m" "[Huion H640P Pen]: " "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
+    "\033[0;32m" "[Huion H640P Interface 0]: " "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
 
 #define LOG_PAD(x, ...) \
-    "\033[0;35m" "[Huion H640P Pad]: " "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
+    "\033[0;35m" "[Huion H640P Interface 1]: " "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
 
 
 #define LOG_INFO(x, ...) \
