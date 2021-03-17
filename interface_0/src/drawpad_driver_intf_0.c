@@ -245,7 +245,6 @@ static void close_interface_0(struct input_dev* input_device) {
 
 static int probe_interface_0(struct usb_interface *interface,
                              const struct usb_device_id *dev_id) {
-
     int rc = -ENOMEM;
 
     struct usb_endpoint_descriptor *endpoint = 
@@ -320,9 +319,7 @@ static int probe_interface_0(struct usb_interface *interface,
         pad_init_pen_status(pad);
 
         LOG_INFO_INTF_0("interface->minor %d\n", interface->minor);
-        LOG_INFO_INTF_0("pad->input_device->dev->driver->name %s\n",
-                         pad->input_device->dev.driver->name);
-
+    
     } else {
         LOG_ERR_INTF_0("\tinput_register_device FAILURE\n");
         usb_free_urb(pad->urb);

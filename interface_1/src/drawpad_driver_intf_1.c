@@ -361,8 +361,7 @@ static int probe_interface_1(struct usb_interface *interface,
         pad_init_pen_status(pad);
 
         LOG_INFO_INTF_1("interface->minor %d\n", interface->minor);
-        LOG_INFO_INTF_1("pad->input_device->dev->driver->name %s\n",
-                         pad->input_device->dev.driver->name);
+        
     } else {
         LOG_ERR_INTF_1("\tinput_register_device FAILURE\n");
         usb_free_urb(pad->urb);
