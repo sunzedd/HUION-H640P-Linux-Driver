@@ -20,7 +20,7 @@
 #define Y_FACTOR    MAX_SCREEN_Y / MAX_PAD_RESOLUTION_VALUE + 1
 
 
-#define DRIVER_NAME     "Huion H640P Driver"
+#define DRIVER_NAME     "Huion H640P Interface 1 Driver"
 #define DRIVER_AUTHOR   "Rostislav V."
 
 #define VENDOR_ID       0x256c    // Huion Animation Co.
@@ -37,41 +37,38 @@ static void disconnect(struct usb_interface* interface);
 static void disconnect_interface_1(struct usb_interface* interface);
 
 
-static 
-struct usb_device_id devices_table[] = {
+static struct usb_device_id devices_table[] = {
     { USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
     { }
 };
 
 MODULE_DEVICE_TABLE(usb, devices_table);
 
-static 
-struct usb_driver drawpad_driver = {
+static struct usb_driver drawpad_driver = {
     .name = DRIVER_NAME,
     .id_table = devices_table,
     .probe = probe,
     .disconnect = disconnect,
 };
 
-static 
-int probe(struct usb_interface *interface, const struct usb_device_id *dev_id) {
-    
+static int probe(struct usb_interface *interface, const struct usb_device_id *dev_id) {
     int rc = -1;
 
     struct usb_host_interface *interface_desc = interface->cur_altsetting;
     int interface_number = interface_desc->desc.bInterfaceNumber;
     
-    LOG_INFO_PAD("probe device (%04x:%04X) Interface: %d\n", dev_id->idVendor, dev_id->idProduct, interface_number);
+    LOG_INFO_INTF_1("probe device (%04x:%04X) Interface: %d\n",
+                    dev_id->idVendor, dev_id->idProduct, interface_number);
 
-    if (interface_number == 1)
+    if (interface_number == 1) {
         rc = probe_interface_1(interface, dev_id);
+    }
    
     return rc;
 }
 
-static 
-void disconnect(struct usb_interface* interface) {
-    LOG_INFO("disconnect device\n");
+static void disconnect(struct usb_interface* interface) {
+    printk(KERN_INFO "disconnect device\n");
     
     struct usb_host_interface *interface_desc = interface->cur_altsetting;
     int interface_number = interface_desc->desc.bInterfaceNumber;
@@ -81,19 +78,17 @@ void disconnect(struct usb_interface* interface) {
     }
 }
 
-static 
-int __init drawpad_driver_init(void) {
+static int __init drawpad_driver_init(void) {
 
     int rc = usb_register(&drawpad_driver);
     if (rc != 0) {
-        LOG_ERR("call usb_register: FAILED\n");
+        printk(KERN_ERR "call usb_register: FAILED\n");
     }
 
     return rc;  
 }
 
-static 
-void __exit drawpad_driver_exit(void) {
+static void __exit drawpad_driver_exit(void) {
     usb_deregister(&drawpad_driver);
 }
 
@@ -102,8 +97,6 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 
 module_init(drawpad_driver_init);
 module_exit(drawpad_driver_exit);
-
-
 
 
 struct drawpad {
@@ -121,8 +114,7 @@ struct drawpad {
 
 static struct drawpad *pad;
 
-static
-void pad_init_pen_status(struct drawpad *pad) {
+static void pad_init_pen_status(struct drawpad *pad) {
     pad->pen_touchdown = 0;
     pad->pen_above_pad = 0;
 }
@@ -166,7 +158,7 @@ static void tasklet_handler(unsigned long tasklet_data) {
     memcpy(&pressure, &data[6], 2);
 
     if (header != 0xa) {
-        LOG_ERR_PAD("Invalid packet recieved. Header = %x\n", header);
+        LOG_ERR_INTF_1("Invalid packet recieved. Header = %x\n", header);
         return;
     }
 
@@ -214,8 +206,8 @@ static void tasklet_handler(unsigned long tasklet_data) {
         input_report_abs(pad->input_device, ABS_PRESSURE, pressure);
     }
 
-    LOG_INFO_PAD("head: %x pen: %x, x: %hu, y: %hu, press: %hu\n", header, pen_status, x * X_FACTOR, y * Y_FACTOR, pressure);
-    //LOG_INFO_PAD("%x %x %x %x %x\n", header, pen_status, x, y, pressure);
+    LOG_INFO_INTF_1("head: %x, pen: %x, x: %hu, y: %hu, press: %hu\n",
+                     header, pen_status, x * X_FACTOR, y * Y_FACTOR, pressure);
 
     input_sync(pad->input_device);
 }
@@ -223,8 +215,7 @@ static void tasklet_handler(unsigned long tasklet_data) {
 DECLARE_TASKLET(pad_tasklet, tasklet_handler, 0);
 
 
-static
-void pad_irq(struct urb *urb) {
+static void pad_irq(struct urb *urb) {
 
     struct drawpad *pad = urb->context;
 
@@ -234,22 +225,25 @@ void pad_irq(struct urb *urb) {
 
         int rc = usb_submit_urb(pad->urb, GFP_ATOMIC);
         if (rc) {
-            LOG_ERR_PAD("\tusb_submit_urb failed\n");
+            LOG_ERR_INTF_1("\tfailed to submit urb\n");
         }
 
     } else {
-        LOG_ERR_PAD("\tError urb status recieved: ");
+        LOG_WARN_INTF_1("\twarning: urb status recieved: ");
+
         switch (urb->status) {
-            case -ENOENT: LOG_ERR_PAD("\t\tENOENT (killed by usb_kill_urb)\n"); break;
-            case -ECONNRESET: LOG_ERR_PAD("\t\tECONNRESET\n"); break;
-            case -EINPROGRESS: LOG_ERR_PAD("\t\tEINPROGRESS\n"); break;
-            default: LOG_ERR_PAD("\t\tanother error: %d\n", urb->status); break;
+            case -ENOENT:
+                LOG_ERR_INTF_1("\t\tENOENT (killed by usb_kill_urb)\n");
+                break;
+
+            default:
+                LOG_ERR_INTF_1("\t\tanother error: %d\n", urb->status);
+                break;
         }
     }
 }
 
-static
-int open_interface_1(struct input_dev* input_device) {
+static int open_interface_1(struct input_dev* input_device) {
 
     struct drawpad *pad = input_get_drvdata(input_device);
 
@@ -260,15 +254,13 @@ int open_interface_1(struct input_dev* input_device) {
     return 0;
 }
 
-static
-void close_interface_1(struct input_dev* input_device) {
+static void close_interface_1(struct input_dev* input_device) {
     struct drawpad *pad = input_get_drvdata(input_device);
     usb_kill_urb(pad->urb);
 }
 
-static
-int probe_interface_1(struct usb_interface *interface,
-              const struct usb_device_id *dev_id) {
+static int probe_interface_1(struct usb_interface *interface,
+                             const struct usb_device_id *dev_id) {
 
     int rc = -ENOMEM;
 
@@ -277,14 +269,14 @@ int probe_interface_1(struct usb_interface *interface,
 
     pad = kzalloc(sizeof(struct drawpad), GFP_KERNEL);
     if (!pad) {
-        LOG_ERR_PAD("\tstruct drawpad allocation FAILURE\n");
+        LOG_ERR_INTF_1("\tstruct drawpad allocation FAILURE\n");
         return rc;
     }
 
     pad->usb_device = interface_to_usbdev(interface);
     pad->input_device = input_allocate_device();
     if (!pad->input_device) {
-        LOG_ERR_PAD("\tinput_allocate_device FAILURE\n");
+        LOG_ERR_INTF_1("\tinput_allocate_device FAILURE\n");
         kfree(pad);
         return rc;
     }
@@ -294,7 +286,7 @@ int probe_interface_1(struct usb_interface *interface,
                                               pad->transfer_buffer_size,
                                               GFP_KERNEL, &pad->dma);
     if (!pad->transfer_buffer) {
-        LOG_ERR_PAD("\ttransfer buffer allocation FAILURE\n");
+        LOG_ERR_INTF_1("\ttransfer buffer allocation FAILURE\n");
         input_free_device(pad->input_device);
         kfree(pad);
         return rc;
@@ -302,7 +294,6 @@ int probe_interface_1(struct usb_interface *interface,
 
     usb_make_path(pad->usb_device, pad->phys, sizeof(pad->phys));
     strlcat(pad->phys, "/input0", sizeof(pad->phys));
-    //LOG_INFO_PAD("usb_path: %s\n", pad->phys);
 
     pad->input_device->name = "Huion H640P Pad";
     pad->input_device->phys = pad->phys;
@@ -335,11 +326,12 @@ int probe_interface_1(struct usb_interface *interface,
     input_abs_set_res(pad->input_device, ABS_X, MAX_PAD_RESOLUTION_VALUE);
     input_set_abs_params(pad->input_device, ABS_Y, 0, MAX_SCREEN_Y, 0, 0);
     input_abs_set_res(pad->input_device, ABS_Y, MAX_PAD_RESOLUTION_VALUE);
-    input_set_abs_params(pad->input_device, ABS_PRESSURE, 0, MAX_PEN_PRESSURE, 0, 0);
+    input_set_abs_params(pad->input_device, ABS_PRESSURE,
+                         0, MAX_PEN_PRESSURE, 0, 0);
 
     pad->urb = usb_alloc_urb(0, GFP_KERNEL);
     if (!pad->urb) {
-        LOG_ERR_PAD("\tusb_alloc_urb FAILURE\n");
+        LOG_ERR_INTF_1("\tusb_alloc_urb FAILURE\n");
         input_free_device(pad->input_device);
         usb_free_coherent(pad->usb_device, pad->transfer_buffer_size,
                           pad->transfer_buffer, pad->dma);
@@ -350,7 +342,7 @@ int probe_interface_1(struct usb_interface *interface,
     pad->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
     
     int urb_pipe = usb_rcvintpipe(pad->usb_device, endpoint->bEndpointAddress);
-    LOG_INFO_PAD("pipe: %d, endpoint: 0x%x\n", urb_pipe, endpoint->bEndpointAddress);
+    LOG_INFO_INTF_1("endpoint address: 0x%x\n", endpoint->bEndpointAddress);
 
     usb_fill_int_urb(pad->urb, pad->usb_device, urb_pipe,
                      pad->transfer_buffer, pad->transfer_buffer_size,
@@ -363,7 +355,7 @@ int probe_interface_1(struct usb_interface *interface,
         usb_set_intfdata(interface, pad);
         pad_init_pen_status(pad);
     } else {
-        LOG_ERR_PAD("\tinput_register_device FAILURE\n");
+        LOG_ERR_INTF_1("\tinput_register_device FAILURE\n");
         usb_free_urb(pad->urb);
         input_free_device(pad->input_device);
         usb_free_coherent(pad->usb_device, pad->transfer_buffer_size,
@@ -374,8 +366,7 @@ int probe_interface_1(struct usb_interface *interface,
     return rc;
 }
 
-static
-void disconnect_interface_1(struct usb_interface *interface) {
+static void disconnect_interface_1(struct usb_interface *interface) {
     
     struct drawpad *pad = usb_get_intfdata(interface);
     if (pad) {
