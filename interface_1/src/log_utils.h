@@ -4,7 +4,8 @@
 #include <linux/kernel.h>
 
 #define LOG(x, ...) \
-    "\033[0;35m" "[Huion H640P Interface 1]: " "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
+    "\033[0;35m" "[Huion H640P Interface 1]: "\
+    "\x1B[0m" x __VA_OPT__(,) __VA_ARGS__
 
 // Журналирование уровня INFO
 #define LOG_INFO(x, ...) \
