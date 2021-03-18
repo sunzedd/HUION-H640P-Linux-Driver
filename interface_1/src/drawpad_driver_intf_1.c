@@ -89,11 +89,13 @@ static void tasklet_handler(unsigned long tasklet_data) {
     input_report_key(drawpad->input_device, BTN_TOOL_PEN, pen_status & 0xc0);
     input_report_key(drawpad->input_device, BTN_TOUCH, pen_status & 0x1);
     input_report_key(drawpad->input_device, BTN_STYLUS, pen_status & 0x2);
-    input_report_key(drawpad->input_device, BTN_STYLUS, pen_status & 0x4);
+    input_report_key(drawpad->input_device, BTN_STYLUS2, pen_status & 0x4);
 
     input_report_abs(drawpad->input_device, ABS_X, x);
     input_report_abs(drawpad->input_device, ABS_Y, y);
     input_report_abs(drawpad->input_device, ABS_PRESSURE, pressure);
+
+    LOG_INFO("%x %x %x %x %x\n", header, pen_status, x, y, pressure);
 
     input_sync(drawpad->input_device);
 }
@@ -102,7 +104,9 @@ DECLARE_TASKLET(drawpad_tasklet, tasklet_handler, 0);
 
 
 static void drawpad_irq(struct urb *urb) {
+
     struct drawpad *drawpad = urb->context;
+
     if (urb->status == 0) {
         tasklet_schedule(&drawpad_tasklet);
 
@@ -110,8 +114,10 @@ static void drawpad_irq(struct urb *urb) {
         if (rc) {
             LOG_ERR("\tfailed to submit urb\n");
         }
+        
     } else {
         LOG_WARN("warning: urb status recieved: ");
+        
         switch (urb->status) {
             case -ENOENT:
                 LOG_ERR("\tENOENT (killed by usb_kill_urb)\n");
