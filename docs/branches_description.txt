@@ -1,2 +1,0 @@
-dev-v3: Использую input_device вместо общего usb_device.
- 
