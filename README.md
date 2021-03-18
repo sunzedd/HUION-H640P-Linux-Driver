@@ -2,6 +2,8 @@
 
 ## Operating Systems Course Project 2020
 
+### !Supports only pen interface (no keypad buttons)
+
 Before plugin the HUION tablet you should remove usbhid
 kernel module to prevent handling the tablet by defaut usbhid driver:
 
@@ -15,6 +17,6 @@ or it can be done permanently on current machine by modifying /etc/default/grub 
 GRUB_CMDLINE_LINUX_DEFAULT="usbhid.quirks=0x256c:0x006d:0x4"
 ```
 
-do update-grub command after this.
+do update-grub command after
 
 
